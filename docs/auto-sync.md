@@ -84,7 +84,11 @@ Lexical BM25 always uses the **current** Markdown files in memory. Auto-Sync onl
 
 ## Limitations (current MVP)
 
-1. **Skip by model + dimensions, not by content** — if a chunk `id` already exists with the same embedding model and dimensionality, `sync_knowledge_run` skips re-embedding even when the Markdown body changed. Touching files updates DB `mtime` via a sync pass, but skipped rows keep old vectors. Workaround: delete `data/knowledge.sqlite*` and run CLI sync, or change model/dimensions.
+1. **Chunk ID is position-based, not content-based** — The chunk id `{slug}#{position}` reflects the ordinal position
+   of the chunk within the document body. If content is added or removed at the beginning of a file, subsequent
+   chunk positions shift. Their `content_hash` will differ and they are re-embedded correctly, but orphaned
+   old IDs from deleted positions are cleaned up as expected orphans. Skip logic: a chunk row is **skipped only
+   when `content_hash`, `embedding_model`, AND `dimensions` all match** — content edits always trigger re-embedding.
 2. **Coarse mtime** — editing a file then reverting content still can trip sync if `mtime` advanced; conversely, copying a file with an older `mtime` than the DB may not trigger sync.
 3. **Request latency** — first chat after knowledge changes can be slow (N Gemini calls).
 4. **No progress UI** — Auto-Sync has no HTTP status channel; clients only see total `duration_ms`.

@@ -13,6 +13,8 @@ Human-facing reference for the PocketRAG hybrid RAG engine. Product overview and
 | [Data model](data-model.md) | SQLite schema, vector packing, telemetry |
 | [Configuration](configuration.md) | `config.php` keys and runtime defaults |
 | [Operations](ops.md) | Local run, sync, verification, telemetry |
+| [Security](security.md) | Security hardening, rate limiting, and web server protection |
+| [Customization](customization.md) | Domain customization, assistant persona, and synonyms |
 | [Deploy](deploy.md) | Shared hosting / PHP drop-in deployment |
 | [Contributing](contributing.md) | Conventions, zero-deps policy, PR expectations |
 

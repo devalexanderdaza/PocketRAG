@@ -10,7 +10,7 @@ Base endpoint: **`index.php`** (repo root).
 | `OPTIONS` | `204` + CORS headers |
 | Content-Type (request) | `application/json` |
 | Content-Type (response) | `application/json; charset=utf-8` |
-| CORS | `Access-Control-Allow-Origin: *` (hardcoded in `http_send_cors`; `allowed_origin` in config is not applied yet) |
+| CORS | Value of `allowed_origin` in `config.php` (default: `*`). Set a specific origin to restrict cross-origin access. |
 
 ## Request body
 

@@ -40,7 +40,7 @@ All library code lives under `lib/` as **prefixed global functions** (no namespa
 | `knowledge.php` | `KNOWLEDGE_MIN_CHUNK_CHARS` | `320` | Prefer merging short paragraphs |
 | `knowledge.php` | `KNOWLEDGE_MAX_CHUNK_CHARS` | `900` | Soft upper bound before sentence split |
 | `embeddings.php` | `EMBEDDINGS_TIMEOUT_SECS` | `2` | Query-time embed timeout |
-| `embeddings.php` | `EMBEDDINGS_SYNC_TIMEOUT_SECS` | `15` | Defined for longer sync work (CLI uses timeout `5` today) |
+| `embeddings.php` | `EMBEDDINGS_SYNC_TIMEOUT_SECS` | `15` | Timeout for embedding calls during sync (`sync_knowledge_run`). |
 | `groq.php` | `GROQ_TIMEOUT_SECS` | `20` | Completion HTTP timeout |
 | `bm25.php` | `BM25_K1` / `BM25_B` | `1.5` / `0.75` | Classic Okapi parameters |
 
