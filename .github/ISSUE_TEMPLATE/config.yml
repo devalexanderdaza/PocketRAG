@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/devalexanderdaza/PocketRAG/tree/main/docs
+    about: Read the project docs for architecture, API, ops, and deployment details.
