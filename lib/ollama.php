@@ -9,6 +9,8 @@
 
 declare(strict_types=1);
 
+const OLLAMA_TIMEOUT_SECS = 30;
+
 /**
  * Generate a completion from an Ollama instance.
  *
@@ -34,7 +36,8 @@ function ollama_complete(
         'temperature' => $temperature,
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
-    $ch = curl_init($endpoint !== '' ? $endpoint : 'http://localhost:11434/v1/chat/completions');
+    $resolvedEndpoint = $endpoint !== '' ? $endpoint : 'http://localhost:11434/v1/chat/completions';
+    $ch = curl_init($resolvedEndpoint);
     if ($ch === false) {
         throw new RuntimeException('Could not initialise cURL for Ollama');
     }
@@ -43,22 +46,32 @@ function ollama_complete(
         CURLOPT_POST           => true,
         CURLOPT_POSTFIELDS     => $payload,
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 30,
+        CURLOPT_TIMEOUT        => OLLAMA_TIMEOUT_SECS,
         CURLOPT_CONNECTTIMEOUT => 5,
         CURLOPT_HTTPHEADER     => [
             'Content-Type: application/json',
             'Accept: application/json',
         ],
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
     ]);
 
     $response = curl_exec($ch);
     $status   = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-    unset($ch);
+    curl_close($ch);
 
     if ($response === false || $status < 200 || $status >= 300) {
         throw new RuntimeException("Ollama API error HTTP {$status}");
     }
 
     $decoded = json_decode((string) $response, true);
-    return trim($decoded['choices'][0]['message']['content'] ?? '');
+
+    // Detect structured API error response
+    if (isset($decoded['error'])) {
+        $errMsg  = (string) ($decoded['error']['message'] ?? 'Unknown error');
+        $errType = (string) ($decoded['error']['type'] ?? '');
+        throw new RuntimeException("Ollama API error ({$errType}): {$errMsg}");
+    }
+
+    return trim((string) ($decoded['choices'][0]['message']['content'] ?? ''));
 }

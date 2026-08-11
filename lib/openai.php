@@ -63,12 +63,20 @@ function openai_complete(
 
     $response = curl_exec($ch);
     $status   = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-    unset($ch);
+    curl_close($ch);
 
     if ($response === false || $status < 200 || $status >= 300) {
         throw new RuntimeException("OpenAI API error HTTP {$status}");
     }
 
     $decoded = json_decode((string) $response, true);
-    return trim($decoded['choices'][0]['message']['content'] ?? '');
+
+    // Detect structured API error response
+    if (isset($decoded['error'])) {
+        $errMsg  = (string) ($decoded['error']['message'] ?? 'Unknown error');
+        $errType = (string) ($decoded['error']['type'] ?? '');
+        throw new RuntimeException("OpenAI API error ({$errType}): {$errMsg}");
+    }
+
+    return trim((string) ($decoded['choices'][0]['message']['content'] ?? ''));
 }

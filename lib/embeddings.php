@@ -81,7 +81,7 @@ function embeddings_get(
 
         $response = curl_exec($ch);
         $status   = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        unset($ch);
+        curl_close($ch);
 
         // Rate limit (429) or quota exceeded (403): rotate to next key
         if ($status === 429 || $status === 403) {

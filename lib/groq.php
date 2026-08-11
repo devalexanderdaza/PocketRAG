@@ -66,7 +66,7 @@ function groq_complete(
 
         $response = curl_exec($ch);
         $status   = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        unset($ch);
+        curl_close($ch);
 
         if ($response !== false && $status >= 200 && $status < 300) {
             break;
@@ -74,7 +74,9 @@ function groq_complete(
 
         // Retry on 429 (rate limit) or 5xx server errors if attempts remain
         if ($attempt < $maxRetries && ($status === 429 || $status >= 500 || $response === false)) {
-            usleep(500000); // 500ms delay before retry
+            // Exponential backoff with jitter: 500ms * 2^attempt + 0-200ms random
+            $delayMs = (int) (500 * (2 ** ($attempt - 1))) + random_int(0, 200);
+            usleep($delayMs * 1000);
         }
     }
 
@@ -83,5 +85,13 @@ function groq_complete(
     }
 
     $decoded = json_decode((string) $response, true);
-    return trim($decoded['choices'][0]['message']['content'] ?? '');
+
+    // Detect structured API error response (e.g. rate limit message body)
+    if (isset($decoded['error'])) {
+        $errMsg  = (string) ($decoded['error']['message'] ?? 'Unknown error');
+        $errType = (string) ($decoded['error']['type'] ?? '');
+        throw new RuntimeException("Groq API error ({$errType}): {$errMsg}");
+    }
+
+    return trim((string) ($decoded['choices'][0]['message']['content'] ?? ''));
 }
