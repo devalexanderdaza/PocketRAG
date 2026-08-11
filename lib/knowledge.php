@@ -55,14 +55,16 @@ function knowledge_parse_frontmatter(string $raw): array
 }
 
 /**
- * Split markdown body into optimized chunks.
+/**
+ * Split markdown body into optimized chunks with optional overlap.
  * 
  * Respects paragraph boundaries and tries to keep chunks within the configured limits.
  *
  * @param string $body The markdown body to split.
+ * @param int $overlapChars Characters of context overlap between chunks.
  * @return list<string> Array of text chunks.
  */
-function knowledge_split_body(string $body): array
+function knowledge_split_body(string $body, int $overlapChars = 150): array
 {
     $paragraphs = preg_split('/\n\s*\n/', $body) ?: [];
     $paragraphs = array_values(array_filter(
@@ -123,6 +125,21 @@ function knowledge_split_body(string $body): array
         }
     }
 
+    if ($overlapChars > 0 && count($bounded) > 1) {
+        $overlapped = [$bounded[0]];
+        $totalBounded = count($bounded);
+        for ($i = 1; $i < $totalBounded; $i++) {
+            $prev = $bounded[$i - 1];
+            $prefix = mb_strlen($prev, 'UTF-8') > $overlapChars ? mb_substr($prev, -$overlapChars, null, 'UTF-8') : $prev;
+            $spacePos = mb_strpos($prefix, ' ', 0, 'UTF-8');
+            if ($spacePos !== false && $spacePos < 30) {
+                $prefix = mb_substr($prefix, $spacePos + 1, null, 'UTF-8');
+            }
+            $overlapped[] = '[...] ' . trim($prefix) . "\n\n" . $bounded[$i];
+        }
+        return $overlapped;
+    }
+
     return $bounded;
 }
 
@@ -130,13 +147,21 @@ function knowledge_split_body(string $body): array
  * Load and chunk all markdown files from a directory.
  *
  * @param string $directory Path to the directory containing markdown files.
+ * @param int|null $overlapChars Optional override for chunk overlap.
  * @return list<array{id:string,slug:string,title:string,tags:string,content:string,priority:int}> Array of parsed chunks.
  */
-function knowledge_load_chunks(string $directory): array
+function knowledge_load_chunks(string $directory, ?int $overlapChars = null): array
 {
     $paths = glob(rtrim($directory, '/') . '/*.md') ?: [];
     sort($paths);
     $chunks = [];
+
+    if ($overlapChars === null && function_exists('http_config')) {
+        $config = http_config();
+        $overlapChars = (int) ($config['chunk_overlap_chars'] ?? 150);
+    } else {
+        $overlapChars = $overlapChars ?? 150;
+    }
 
     foreach ($paths as $path) {
         $raw = @file_get_contents($path);
@@ -152,7 +177,7 @@ function knowledge_load_chunks(string $directory): array
         $tags   = is_array($tags) ? implode(', ', $tags) : (string) $tags;
         $priority = (int) ($meta['priority'] ?? 5);
 
-        foreach (knowledge_split_body($parsed['body']) as $position => $content) {
+        foreach (knowledge_split_body($parsed['body'], $overlapChars) as $position => $content) {
             $chunks[] = [
                 'id'       => $slug . '#' . $position,
                 'slug'     => $slug,

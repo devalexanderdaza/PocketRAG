@@ -49,7 +49,7 @@ function sync_knowledge_run(
         echo "Loaded " . count($chunks) . " total chunks.\n";
     }
 
-    $stmt = $pdo->query('SELECT id, embedding_model, dimensions FROM knowledge_chunks');
+    $stmt = $pdo->query('SELECT id, content_hash, embedding_model, dimensions FROM knowledge_chunks');
     $existing = [];
     while ($row = $stmt->fetch()) {
         $existing[$row['id']] = $row;
@@ -60,14 +60,15 @@ function sync_knowledge_run(
 
     $insertStmt = $pdo->prepare('
         INSERT INTO knowledge_chunks (
-            id, slug, title, tags, priority, content, embedding, vector_magnitude, embedding_model, dimensions, created_at
+            id, slug, title, tags, priority, content, content_hash, embedding, vector_magnitude, embedding_model, dimensions, created_at
         ) VALUES (
-            :id, :slug, :title, :tags, :priority, :content, :embedding, :vector_magnitude, :embedding_model, :dimensions, :created_at
+            :id, :slug, :title, :tags, :priority, :content, :content_hash, :embedding, :vector_magnitude, :embedding_model, :dimensions, :created_at
         ) ON CONFLICT(id) DO UPDATE SET
             title = excluded.title,
             tags = excluded.tags,
             priority = excluded.priority,
             content = excluded.content,
+            content_hash = excluded.content_hash,
             embedding = excluded.embedding,
             vector_magnitude = excluded.vector_magnitude,
             embedding_model = excluded.embedding_model,
@@ -77,9 +78,11 @@ function sync_knowledge_run(
 
     foreach ($chunks as $chunk) {
         $id = $chunk['id'];
+        $contentHash = md5($chunk['content']);
 
         if (
             isset($existing[$id])
+            && ($existing[$id]['content_hash'] ?? '') === $contentHash
             && $existing[$id]['embedding_model'] === $model
             && (int) $existing[$id]['dimensions'] === $targetDimensions
         ) {
@@ -116,6 +119,7 @@ function sync_knowledge_run(
             ':tags'             => $chunk['tags'],
             ':priority'         => $chunk['priority'],
             ':content'          => $chunk['content'],
+            ':content_hash'     => $contentHash,
             ':embedding'        => $blob,
             ':vector_magnitude' => $magnitude,
             ':embedding_model'  => $model,
