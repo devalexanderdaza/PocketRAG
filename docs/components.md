@@ -15,17 +15,20 @@ All library code lives under `lib/` as **prefixed global functions** (no namespa
 |---|---|---|
 | `lib/http.php` | `http_` | Load config, CORS, POST gate, JSON body/response |
 | `lib/conversation.php` | `conversation_` | History sanitize (last 10 user/assistant turns); query reformulation via Groq |
-| `lib/knowledge.php` | `knowledge_` | Frontmatter parse, body chunking, chunk load, BM25 index build |
+| `lib/knowledge.php` | `knowledge_` | Frontmatter parse, body chunking with overlap, chunk load, BM25 index build |
 | `lib/bm25.php` | `bm25_` | Fold/tokenize, Okapi BM25 index + search (`k1=1.5`, `b=0.75`) |
 | `lib/synonyms.php` | `synonyms_` | ES/EN word and phrase expansion before search |
 | `lib/retrieval.php` | `retrieval_` | Hybrid orchestration, priority boost, citations, fallbacks |
-| `lib/sync.php` | `sync_` | Shared ingest + mtime freshness auto-sync |
+| `lib/sync.php` | `sync_` | Shared ingest with `content_hash` diff + mtime freshness auto-sync |
 | `lib/embeddings.php` | `embeddings_` | Gemini `embedContent` client with key rotation |
 | `lib/math.php` | `vector_`, `cosine_` | `pack('f*')` / unpack, magnitude, cosine |
-| `lib/db.php` | `db_` | PDO SQLite, WAL pragmas, schema bootstrap |
+| `lib/db.php` | `db_` | PDO SQLite, WAL pragmas, schema bootstrap & migration |
 | `lib/prompt.php` | `prompt_` | System prompt with retrieved context |
-| `lib/groq.php` | `groq_` | Groq OpenAI-compatible chat completions |
-| `lib/telemetry.php` | `telemetry_` | Insert / read `rag_telemetry` rows |
+| `lib/llm.php` | `llm_` | Provider dispatcher (`groq`, `ollama`, `openai`) |
+| `lib/groq.php` | `groq_` | Groq OpenAI-compatible chat completions with backoff retry |
+| `lib/ollama.php` | `ollama_` | Ollama Local LLM chat completions |
+| `lib/openai.php` | `openai_` | OpenAI chat completions |
+| `lib/telemetry.php` | `telemetry_` | Insert / read `rag_telemetry` rows with toggle check |
 
 ## Constants that shape behavior
 

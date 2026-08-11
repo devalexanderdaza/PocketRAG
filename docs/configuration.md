@@ -14,9 +14,17 @@ Both `index.php` and sync/retrieval fall back to `config.example.php` if `config
 
 | Key | Type | Default / example | Used by |
 |---|---|---|---|
-| `allowed_origin` | string | `*` | Present in example; **CORS currently hardcodes `*`** in `http_send_cors` |
-| `groq_api_key` | string | placeholder `gsk_…` | Reformulation + completion. Placeholder / empty → mock reply, no reformulation |
+| `allowed_origin` | string | `*` | `http_send_cors` header output |
+| `telemetry_enabled` | bool | `true` | `telemetry_log` toggle for SQLite request logging |
+| `auto_sync_on_retrieval` | bool | `true` | `retrieval_select` toggle for fast mtime/hash freshness auto-sync |
+| `chunk_overlap_chars` | int | `150` | `knowledge_split_body` character context overlap between chunks |
+| `llm_provider` | string | `groq` | `llm_complete` dispatcher selection (`groq`, `ollama`, `openai`) |
+| `groq_api_key` | string | placeholder `gsk_…` | Groq reformulation + completion. Placeholder / empty → mock reply |
 | `groq_model` | string | `llama-3.3-70b-versatile` | Groq model id |
+| `ollama_endpoint` | string | `http://localhost:11434/v1/chat/completions` | Ollama local endpoint |
+| `ollama_model` | string | `llama3.2` | Ollama local model id |
+| `openai_api_key` | string | placeholder `sk-…` | OpenAI API key |
+| `openai_model` | string | `gpt-4o-mini` | OpenAI model id |
 | `gemini_api_keys` | string[] | pool of keys | Embeddings; rotate on HTTP 429/403 |
 | `gemini_model` | string | `gemini-embedding-001` | Embedding model |
 | `gemini_dimensions` | int | `768` | `outputDimensionality` on embed requests |
