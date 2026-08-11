@@ -1,7 +1,11 @@
 <?php
 /**
- * Shared Knowledge Sync Library: Handles Markdown -> SQLite Vector Synchronization.
+ * Shared Knowledge Sync Library.
+ * 
+ * Handles Markdown to SQLite Vector Synchronization.
  * Reused by CLI scripts and Auto-Sync (Freshness Check).
+ * 
+ * @package PocketRAG
  */
 
 declare(strict_types=1);
@@ -12,9 +16,18 @@ require_once __DIR__ . '/math.php';
 require_once __DIR__ . '/embeddings.php';
 
 /**
- * Synchronize knowledge markdown files to SQLite vector database.
+ * Synchronize knowledge markdown files to the SQLite vector database.
+ * 
+ * Embeds markdown content and stores it in the database.
+ * Skips files that have not changed according to model and dimensions.
  *
- * @return array{processed:int,skipped:int,deleted:int}
+ * @param string $knowledgeDir Path to the markdown files.
+ * @param string $dbPath Path to the SQLite database.
+ * @param list<string> $apiKeys Gemini API keys.
+ * @param string $model Embedding model.
+ * @param int $targetDimensions Output dimensions.
+ * @param bool $verbose Print output to console.
+ * @return array{processed:int,skipped:int,deleted:int} Sync metrics.
  */
 function sync_knowledge_run(
     string $knowledgeDir,
@@ -138,6 +151,12 @@ function sync_knowledge_run(
 
 /**
  * Perform a freshness check and sync if any markdown file is newer than the DB.
+ *
+ * @param string $knowledgeDir Path to the markdown files.
+ * @param string $dbPath Path to the SQLite database.
+ * @param list<string> $apiKeys Gemini API keys.
+ * @param string $model Embedding model.
+ * @param int $targetDimensions Output dimensions.
  */
 function sync_knowledge_if_needed(
     string $knowledgeDir,

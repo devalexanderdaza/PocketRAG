@@ -1,6 +1,10 @@
 <?php
 /**
  * Groq Chat Completion cURL Client.
+ * 
+ * Connects to the Groq API to generate chat completions using specified models.
+ * 
+ * @package PocketRAG
  */
 
 declare(strict_types=1);
@@ -8,6 +12,17 @@ declare(strict_types=1);
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_TIMEOUT_SECS = 20;
 
+/**
+ * Generate a completion from Groq API.
+ *
+ * @param list<array{role:string,content:string}> $messages The message history.
+ * @param string $apiKey The Groq API key.
+ * @param string $model The Groq model name.
+ * @param int $maxTokens The maximum tokens to generate.
+ * @param float $temperature The generation temperature.
+ * @return string The completed response text.
+ * @throws RuntimeException If the cURL request fails or returns a non-2xx status.
+ */
 function groq_complete(
     array $messages,
     string $apiKey,

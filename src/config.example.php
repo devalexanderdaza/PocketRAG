@@ -1,7 +1,11 @@
 <?php
 /**
- * PHPoC-VeRAG Configuration File Example
- * Save as config.php in root or private directory.
+ * PocketRAG Configuration File Example.
+ * 
+ * Save this file as `config.php` in the root or private directory.
+ * Contains API keys and model configurations for Groq and Gemini.
+ * 
+ * @package PocketRAG
  */
 
 declare(strict_types=1);

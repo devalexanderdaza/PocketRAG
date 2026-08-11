@@ -1,7 +1,10 @@
 <?php
 /**
  * Telemetry & Logging Library for RAG Engine.
+ * 
  * Logs query metrics, retrieval mode (hybrid vs bm25_fallback), latency, and fallbacks to SQLite.
+ * 
+ * @package PocketRAG
  */
 
 declare(strict_types=1);
@@ -10,6 +13,15 @@ require_once __DIR__ . '/db.php';
 
 /**
  * Log a RAG request to the rag_telemetry SQLite table.
+ *
+ * @param string $dbPath Path to the SQLite database.
+ * @param string $userQuery The user's original query.
+ * @param string $searchQuery The standalone query used for retrieval.
+ * @param string $mode The retrieval mode ('hybrid' or 'bm25_fallback').
+ * @param bool $fallbackOccurred True if fallback occurred.
+ * @param string|null $fallbackReason Reason for the fallback.
+ * @param int $sourcesCount Number of sources retrieved.
+ * @param float $durationMs Request duration in milliseconds.
  */
 function telemetry_log(
     string $dbPath,
@@ -49,7 +61,9 @@ function telemetry_log(
 /**
  * Retrieve recent telemetry logs from SQLite.
  *
- * @return list<array<string,mixed>>
+ * @param string $dbPath Path to the SQLite database.
+ * @param int $limit Maximum number of logs to return.
+ * @return list<array<string,mixed>> The telemetry logs.
  */
 function telemetry_get_recent(string $dbPath, int $limit = 50): array
 {

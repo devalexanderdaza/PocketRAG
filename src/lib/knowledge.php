@@ -1,6 +1,10 @@
 <?php
 /**
  * Markdown Loader and Section Chunker.
+ * 
+ * Parses markdown files with YAML frontmatter and splits bodies into manageable chunks.
+ * 
+ * @package PocketRAG
  */
 
 declare(strict_types=1);
@@ -10,6 +14,12 @@ require_once __DIR__ . '/bm25.php';
 const KNOWLEDGE_MIN_CHUNK_CHARS = 320;
 const KNOWLEDGE_MAX_CHUNK_CHARS = 900;
 
+/**
+ * Parse frontmatter and body from a raw markdown string.
+ *
+ * @param string $raw The raw markdown content.
+ * @return array{meta:array<string,mixed>,body:string} Parsed metadata and body.
+ */
 function knowledge_parse_frontmatter(string $raw): array
 {
     $raw = str_replace("\r\n", "\n", $raw);
@@ -44,6 +54,14 @@ function knowledge_parse_frontmatter(string $raw): array
     return ['meta' => $meta, 'body' => trim($body)];
 }
 
+/**
+ * Split markdown body into optimized chunks.
+ * 
+ * Respects paragraph boundaries and tries to keep chunks within the configured limits.
+ *
+ * @param string $body The markdown body to split.
+ * @return list<string> Array of text chunks.
+ */
 function knowledge_split_body(string $body): array
 {
     $paragraphs = preg_split('/\n\s*\n/', $body) ?: [];
@@ -108,6 +126,12 @@ function knowledge_split_body(string $body): array
     return $bounded;
 }
 
+/**
+ * Load and chunk all markdown files from a directory.
+ *
+ * @param string $directory Path to the directory containing markdown files.
+ * @return list<array{id:string,slug:string,title:string,tags:string,content:string,priority:int}> Array of parsed chunks.
+ */
 function knowledge_load_chunks(string $directory): array
 {
     $paths = glob(rtrim($directory, '/') . '/*.md') ?: [];
@@ -143,6 +167,12 @@ function knowledge_load_chunks(string $directory): array
     return $chunks;
 }
 
+/**
+ * Build a BM25 lexical index from loaded knowledge chunks.
+ *
+ * @param list<array{id:string,slug:string,title:string,tags:string,content:string,priority:int}> $chunks
+ * @return array{docs:list<array{id:string,len:int,freqs:array<string,int>}>,df:array<string,int>,avgdl:float,n:int} The BM25 index.
+ */
 function knowledge_build_index(array $chunks): array
 {
     $seenSlugs = [];

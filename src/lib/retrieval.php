@@ -1,7 +1,10 @@
 <?php
 /**
  * Context selection: Hybrid RAG Engine (Cosine Similarity + Okapi BM25).
+ * 
  * Fallbacks gracefully to BM25 if embedding API is unavailable.
+ * 
+ * @package PocketRAG
  */
 
 declare(strict_types=1);
@@ -19,9 +22,15 @@ const RETRIEVAL_MAX_CITATIONS = 3;
 
 /**
  * Select top K context chunks using Hybrid Search (Cosine + BM25).
+ * 
+ * Computes individual BM25 and Cosine similarity scores, normalizes them,
+ * and combines them into a hybrid score. Fallbacks to pure BM25 on API failure.
  *
- * @param list<array{id:string,slug:string,title:string,tags:string,content:string,priority:int}> $chunks
- * @return array{context:string,sources:list<array{id:string,label:string,snippet:string,score:float}>}
+ * @param list<array{id:string,slug:string,title:string,tags:string,content:string,priority:int}> $chunks Array of all knowledge chunks.
+ * @param array{docs:list<array{id:string,len:int,freqs:array<string,int>}>,df:array<string,int>,avgdl:float,n:int} $index Precomputed BM25 index.
+ * @param string $message The standalone query to search for.
+ * @param string $flowId Optional conversational flow ID.
+ * @return array{context:string,sources:list<array{id:string,label:string,snippet:string,score:float}>,mode:string,fallback_occurred:bool,fallback_reason:string|null} Retrieval results.
  */
 function retrieval_select(
     array $chunks,
@@ -166,6 +175,15 @@ function retrieval_select(
     ];
 }
 
+/**
+ * Apply priority weighting to the ranked hits.
+ * 
+ * Boosts scores of chunks with a priority higher than 5.
+ *
+ * @param list<array{id:string,score:float}> $ranked The currently ranked hits.
+ * @param array<string,array{id:string,slug:string,title:string,tags:string,content:string,priority:int}> $byId Associative array of chunks indexed by ID.
+ * @return list<array{id:string,score:float}> Re-ranked hits.
+ */
 function retrieval_apply_priority(array $ranked, array $byId): array
 {
     foreach ($ranked as $position => $hit) {
@@ -180,6 +198,14 @@ function retrieval_apply_priority(array $ranked, array $byId): array
     return $ranked;
 }
 
+/**
+ * Provide default fallback chunks if no search results match.
+ * 
+ * Defaults to "profile" or "cv" chunks if available.
+ *
+ * @param list<array{id:string,slug:string,title:string,tags:string,content:string,priority:int}> $chunks All available chunks.
+ * @return list<array{id:string,score:float}> The default fallback hits.
+ */
 function retrieval_default_chunks(array $chunks): array
 {
     $picked = [];
@@ -197,6 +223,13 @@ function retrieval_default_chunks(array $chunks): array
     return $picked;
 }
 
+/**
+ * Generate a concise snippet from chunk content for UI display.
+ *
+ * @param string $content The full markdown content of the chunk.
+ * @param int $limit Maximum number of characters for the snippet.
+ * @return string The truncated snippet.
+ */
 function retrieval_snippet(string $content, int $limit = 140): string
 {
     $flat = trim((string) preg_replace('/\s+/', ' ', $content));

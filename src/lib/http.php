@@ -1,10 +1,19 @@
 <?php
 /**
  * Shared HTTP Plumbing.
+ * 
+ * Provides utilities for handling HTTP requests, responses, and configuration parsing.
+ * 
+ * @package PocketRAG
  */
 
 declare(strict_types=1);
 
+/**
+ * Load and cache the configuration array.
+ *
+ * @return array<string, mixed> The configuration array.
+ */
 function http_config(): array
 {
     static $config = null;
@@ -19,6 +28,9 @@ function http_config(): array
     return is_array($config) ? $config : [];
 }
 
+/**
+ * Send Cross-Origin Resource Sharing (CORS) headers.
+ */
 function http_send_cors(): void
 {
     header('Access-Control-Allow-Origin: *');
@@ -26,6 +38,12 @@ function http_send_cors(): void
     header('Access-Control-Allow-Headers: Content-Type');
 }
 
+/**
+ * Send a JSON response and terminate execution.
+ *
+ * @param int $status The HTTP status code.
+ * @param array<string, mixed> $payload The data payload to serialize.
+ */
 function http_send_json(int $status, array $payload): void
 {
     if (!headers_sent()) {
@@ -37,6 +55,9 @@ function http_send_json(int $status, array $payload): void
     exit;
 }
 
+/**
+ * Enforce POST request method. Exits early for OPTIONS requests.
+ */
 function http_require_post(): void
 {
     $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -50,6 +71,11 @@ function http_require_post(): void
     }
 }
 
+/**
+ * Read and decode the JSON body from the incoming request.
+ *
+ * @return array<mixed, mixed> The decoded JSON array.
+ */
 function http_read_json_body(): array
 {
     $raw = file_get_contents('php://input');

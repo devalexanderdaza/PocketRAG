@@ -1,6 +1,10 @@
 <?php
 /**
- * Gemini API Embeddings Client with Key Rotation & Timeout.
+ * Gemini API Embeddings Client.
+ * 
+ * Handles vector embedding generation with key rotation and timeout management.
+ * 
+ * @package PocketRAG
  */
 
 declare(strict_types=1);
@@ -9,9 +13,15 @@ const EMBEDDINGS_TIMEOUT_SECS = 2;
 const EMBEDDINGS_SYNC_TIMEOUT_SECS = 15;
 
 /**
- * Fetch vector embedding for text using key pool rotation.
+ * Fetch a vector embedding for text using key pool rotation.
+ * 
+ * Will try multiple keys if rate limited (429) or quota exceeded (403).
  *
- * @param list<string> $apiKeys
+ * @param string $text The text to embed.
+ * @param list<string> $apiKeys Array of Gemini API keys.
+ * @param string $model The model ID to use.
+ * @param int $dimensions Output dimensions.
+ * @param int $timeoutSecs cURL timeout in seconds.
  * @return list<float>|null Returns array of floats or null on complete failure.
  */
 function embeddings_get(

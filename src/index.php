@@ -1,7 +1,11 @@
 <?php
 /**
- * PHPoC-VeRAG Test Endpoint (Mock Chat Endpoint).
- * Accepts POST JSON request {"message": "question"} and returns RAG context + Groq response.
+ * PocketRAG Main Chat Endpoint.
+ * 
+ * Accepts POST JSON requests with `{"message": "question"}` and an optional `history` array.
+ * Performs a hybrid retrieval (BM25 + Vector) and returns the generated response from Groq LLM.
+ * 
+ * @package PocketRAG
  */
 
 declare(strict_types=1);
@@ -73,11 +77,11 @@ try {
     if ($groqApiKey !== '' && !str_contains($groqApiKey, 'your_groq_api_key')) {
         $reply = groq_complete($groqMessages, $groqApiKey, $groqModel, 512);
     } else {
-        $reply = '[MOCK RESPONSE]: Configura tu groq_api_key en config.php para recibir respuestas en vivo de Groq LLM. Contexto Híbrido recuperado correctamente para la consulta: "' . $searchQuery . '".';
+        $reply = '[MOCK RESPONSE]: Please configure your groq_api_key in config.php to receive live responses from Groq LLM. Hybrid Context retrieved successfully for the query: "' . $searchQuery . '".';
     }
 } catch (Exception $e) {
     $error = $e->getMessage();
-    $reply = 'Ocurrió un error al procesar la solicitud.';
+    $reply = 'An error occurred while processing the request.';
 }
 
 $durationMs = round((microtime(true) - $startTime) * 1000, 2);

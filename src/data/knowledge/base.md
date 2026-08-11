@@ -1,7 +1,7 @@
 ---
 slug: base
 type: system_guidelines
-title: PHPoC-VeRAG Base Knowledge System
+title: PocketRAG Base Knowledge System
 tags: rag, architecture, hybrid-search, system, developer, php
 author: Alexander Daza
 github: devalexanderdaza
@@ -9,9 +9,9 @@ website: www.alexanderdaza.com
 priority: 10
 ---
 
-# PHPoC-VeRAG: Pure PHP Serverless Hybrid RAG Engine
+# PocketRAG: Pure PHP Serverless Hybrid RAG Engine
 
-PHPoC-VeRAG (PHP Proof of Concept - Vector & Retrieval-Augmented Generation) is a lightweight, self-contained hybrid search engine designed to run on traditional PHP environments without requiring heavy frameworks or dedicated vector databases.
+PocketRAG (PHP Proof of Concept - Vector & Retrieval-Augmented Generation) is a lightweight, self-contained hybrid search engine designed to run on traditional PHP environments without requiring heavy frameworks or dedicated vector databases.
 
 ## Architecture Features
 

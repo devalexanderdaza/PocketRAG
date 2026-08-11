@@ -1,11 +1,23 @@
 <?php
 /**
  * SQLite3 Database Wrapper using PDO.
- * Autogenerates schema if missing and handles WAL mode configuration.
+ * 
+ * Autogenerates schema if missing and handles WAL mode configuration for performance.
+ * 
+ * @package PocketRAG
  */
 
 declare(strict_types=1);
 
+/**
+ * Get a PDO instance for the specified database path.
+ * 
+ * Handles directory creation, sets error modes, and configures SQLite pragmas.
+ * Uses a static map to reuse connections within the same request.
+ *
+ * @param string $dbPath The absolute path to the SQLite database file.
+ * @return PDO The connected PDO instance.
+ */
 function db_get_pdo(string $dbPath): PDO
 {
     static $pdoMap = [];

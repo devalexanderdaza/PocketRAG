@@ -1,14 +1,19 @@
 <?php
 /**
- * Native vector operations: binary packing/unpacking and Cosine Similarity.
+ * Native vector operations.
+ * 
+ * Provides binary packing/unpacking and Cosine Similarity computations.
+ * 
+ * @package PocketRAG
  */
 
 declare(strict_types=1);
 
 /**
- * Pack float array to C-binary string (4 bytes per float).
+ * Pack a float array to a C-binary string (4 bytes per float).
  *
- * @param list<float> $vector
+ * @param list<float> $vector The float array to pack.
+ * @return string The binary blob.
  */
 function vector_pack(array $vector): string
 {
@@ -16,9 +21,10 @@ function vector_pack(array $vector): string
 }
 
 /**
- * Unpack C-binary BLOB to array of floats.
+ * Unpack a C-binary BLOB to an array of floats.
  *
- * @return list<float>
+ * @param string $blob The binary blob to unpack.
+ * @return list<float> The array of floats.
  */
 function vector_unpack(string $blob): array
 {
@@ -27,9 +33,10 @@ function vector_unpack(string $blob): array
 }
 
 /**
- * Compute Euclidean magnitude ||V|| = sqrt(sum(v_i^2)).
+ * Compute Euclidean magnitude: ||V|| = sqrt(sum(v_i^2)).
  *
- * @param list<float> $vector
+ * @param list<float> $vector The input vector.
+ * @return float The magnitude of the vector.
  */
 function vector_magnitude(array $vector): float
 {
@@ -41,12 +48,15 @@ function vector_magnitude(array $vector): float
 }
 
 /**
- * Cosine Similarity with precomputed magnitudes.
+ * Compute Cosine Similarity with precomputed magnitudes.
  *
- * Cosine(A, B) = (A . B) / (||A|| * ||B||)
+ * Formula: Cosine(A, B) = (A . B) / (||A|| * ||B||)
  *
- * @param list<float> $a
- * @param list<float> $b
+ * @param list<float> $a First vector.
+ * @param float $magA Precomputed magnitude of the first vector.
+ * @param list<float> $b Second vector.
+ * @param float $magB Precomputed magnitude of the second vector.
+ * @return float The cosine similarity.
  */
 function cosine_similarity_precomputed(
     array $a,

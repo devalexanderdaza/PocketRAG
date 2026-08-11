@@ -1,12 +1,21 @@
 <?php
 /**
  * Query Expansion dictionary for Spanish and English.
+ * 
+ * Provides synonym mapping and phrase matching to expand search queries.
+ * 
+ * @package PocketRAG
  */
 
 declare(strict_types=1);
 
 require_once __DIR__ . '/bm25.php';
 
+/**
+ * Get the exact word synonym map.
+ *
+ * @return array<string, string> Map of single words to their expanded terms.
+ */
 function synonyms_map(): array
 {
     return [
@@ -20,6 +29,11 @@ function synonyms_map(): array
     ];
 }
 
+/**
+ * Get the phrase synonym map.
+ *
+ * @return array<string, string> Map of phrases to their expanded terms.
+ */
 function synonyms_phrases(): array
 {
     return [
@@ -30,6 +44,14 @@ function synonyms_phrases(): array
     ];
 }
 
+/**
+ * Expand a query using the synonym dictionary.
+ * 
+ * Matches full phrases first, then tokenizes and matches individual words.
+ *
+ * @param string $query The original query string.
+ * @return string The expanded query string containing original and new terms.
+ */
 function synonyms_expand(string $query): string
 {
     $expanded = [];

@@ -1,7 +1,10 @@
 <?php
 /**
  * Idempotent Ingestion Script: Markdown Files -> SQLite Vector Storage.
+ * 
  * Run via CLI: php scripts/sync.php
+ * 
+ * @package PocketRAG
  */
 
 declare(strict_types=1);
@@ -22,5 +25,5 @@ $apiKeys = $config['gemini_api_keys'] ?? [];
 $model = $config['gemini_model'] ?? 'gemini-embedding-001';
 $targetDimensions = (int) ($config['gemini_dimensions'] ?? 768);
 
-echo "PHPoC-VeRAG Ingestion Pipeline Started\n";
+echo "PocketRAG Ingestion Pipeline Started\n";
 sync_knowledge_run($knowledgeDir, $dbPath, $apiKeys, $model, $targetDimensions, true);

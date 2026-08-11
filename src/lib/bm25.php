@@ -1,6 +1,10 @@
 <?php
 /**
  * Okapi BM25 — dependency-free port of rank_bm25.
+ * 
+ * Provides lexical search capabilities.
+ * 
+ * @package PocketRAG
  */
 
 declare(strict_types=1);
@@ -17,6 +21,12 @@ const BM25_STOPWORDS = [
     'con' => true, 'un' => true, 'una' => true, 'es' => true, 'y' => true,
 ];
 
+/**
+ * Fold and normalize a string (lowercase and remove accents).
+ *
+ * @param string $text The text to normalize.
+ * @return string The normalized text.
+ */
 function bm25_fold(string $text): string
 {
     $text = mb_strtolower($text, 'UTF-8');
@@ -28,6 +38,12 @@ function bm25_fold(string $text): string
     return strtr($text, $map);
 }
 
+/**
+ * Tokenize a string into an array of words, removing stopwords.
+ *
+ * @param string $text The text to tokenize.
+ * @return list<string> An array of valid tokens.
+ */
 function bm25_tokenize(string $text): array
 {
     preg_match_all('/[a-z0-9]+/', bm25_fold($text), $matches);
@@ -37,6 +53,12 @@ function bm25_tokenize(string $text): array
     ));
 }
 
+/**
+ * Build the BM25 index from a set of document entries.
+ *
+ * @param list<array{id:string,text:string,group?:string}> $entries The documents to index.
+ * @return array{docs:list<array{id:string,len:int,freqs:array<string,int>}>,df:array<string,int>,avgdl:float,n:int} The computed index data.
+ */
 function bm25_index(array $entries): array
 {
     $docs       = [];
@@ -87,6 +109,13 @@ function bm25_index(array $entries): array
     ];
 }
 
+/**
+ * Search the BM25 index for a given query.
+ *
+ * @param array{docs:list<array{id:string,len:int,freqs:array<string,int>}>,df:array<string,int>,avgdl:float,n:int} $index The BM25 index.
+ * @param string $query The search query.
+ * @return list<array{id:string,score:float}> The search results sorted by score descending.
+ */
 function bm25_search(array $index, string $query): array
 {
     if ($index['n'] === 0) {
