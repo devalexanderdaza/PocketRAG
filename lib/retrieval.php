@@ -201,15 +201,20 @@ function retrieval_apply_priority(array $ranked, array $byId): array
 /**
  * Provide default fallback chunks if no search results match.
  * 
- * Defaults to "profile" or "cv" chunks if available.
+ * Falls back to chunks whose slug matches any entry in config 'default_fallback_slugs'.
+ * If none match, returns the first available chunk.
  *
  * @param list<array{id:string,slug:string,title:string,tags:string,content:string,priority:int}> $chunks All available chunks.
  * @return list<array{id:string,score:float}> The default fallback hits.
  */
 function retrieval_default_chunks(array $chunks): array
 {
+    $config        = http_config();
+    $fallbackSlugs = (array) ($config['default_fallback_slugs'] ?? ['profile', 'cv', 'about']);
+
     $picked = [];
-    foreach (['profile', 'cv'] as $slug) {
+    foreach ($fallbackSlugs as $slug) {
+        $slug = (string) $slug;
         foreach ($chunks as $chunk) {
             if ($chunk['slug'] === $slug) {
                 $picked[] = ['id' => $chunk['id'], 'score' => 0.0];
@@ -217,9 +222,11 @@ function retrieval_default_chunks(array $chunks): array
             }
         }
     }
+
     if ($picked === [] && $chunks !== []) {
         $picked[] = ['id' => $chunks[0]['id'], 'score' => 0.0];
     }
+
     return $picked;
 }
 

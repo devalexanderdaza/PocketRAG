@@ -1,0 +1,13 @@
+{
+  "_comment": "PocketRAG synonym expansion dictionary. Copy this file to synonyms.json and customize for your domain.",
+  "_format": {
+    "words": "Map of single tokens (lowercase, no accents) to space-separated expansion terms.",
+    "phrases": "Map of normalized phrases (lowercase, no accents) to expansion terms. Matched before individual words."
+  },
+  "words": {
+    "example": "sample instance demo case"
+  },
+  "phrases": {
+    "example phrase": "expanded term other term"
+  }
+}
