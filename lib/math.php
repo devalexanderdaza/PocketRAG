@@ -52,6 +52,10 @@ function vector_magnitude(array $vector): float
  *
  * Formula: Cosine(A, B) = (A . B) / (||A|| * ||B||)
  *
+ * Returns 0.0 and logs an error if vectors have mismatched dimensions, preventing
+ * silent incorrect scores when the DB contains vectors from a different model/dimension
+ * setting than the current query embedding.
+ *
  * @param list<float> $a First vector.
  * @param float $magA Precomputed magnitude of the first vector.
  * @param list<float> $b Second vector.
@@ -68,10 +72,21 @@ function cosine_similarity_precomputed(
         return 0.0;
     }
 
-    $dotProduct = 0.0;
-    $count = count($a);
+    $countA = count($a);
+    $countB = count($b);
 
-    for ($i = 0; $i < $count; $i++) {
+    if ($countA !== $countB) {
+        error_log(sprintf(
+            'cosine_similarity_precomputed: dimension mismatch (%d vs %d). '
+            . 'Delete data/knowledge.sqlite* and re-run php scripts/sync.php.',
+            $countA,
+            $countB
+        ));
+        return 0.0;
+    }
+
+    $dotProduct = 0.0;
+    for ($i = 0; $i < $countA; $i++) {
         $dotProduct += $a[$i] * $b[$i];
     }
 

@@ -76,6 +76,9 @@ function sync_knowledge_run(
             created_at = excluded.created_at
     ');
 
+    // Collect all vectors before writing — fail fast on API errors before mutating the DB
+    $toUpsert = [];
+
     foreach ($chunks as $chunk) {
         $id = $chunk['id'];
         $contentHash = md5($chunk['content']);
@@ -99,7 +102,7 @@ function sync_knowledge_run(
             $apiKeys,
             $model,
             $targetDimensions,
-            5
+            EMBEDDINGS_SYNC_TIMEOUT_SECS
         );
 
         if ($vector === null) {
@@ -109,37 +112,55 @@ function sync_knowledge_run(
             continue;
         }
 
-        $magnitude = vector_magnitude($vector);
-        $blob = vector_pack($vector);
-
-        $insertStmt->execute([
-            ':id'               => $chunk['id'],
-            ':slug'             => $chunk['slug'],
-            ':title'            => $chunk['title'],
-            ':tags'             => $chunk['tags'],
-            ':priority'         => $chunk['priority'],
-            ':content'          => $chunk['content'],
-            ':content_hash'     => $contentHash,
-            ':embedding'        => $blob,
-            ':vector_magnitude' => $magnitude,
-            ':embedding_model'  => $model,
-            ':dimensions'       => count($vector),
-            ':created_at'       => time(),
-        ]);
-
+        $toUpsert[] = [
+            'chunk'        => $chunk,
+            'contentHash'  => $contentHash,
+            'vector'       => $vector,
+        ];
         $processed++;
     }
 
-    // Clean up orphaned chunks
+    // Atomic write: all upserts + orphan deletes in a single transaction
     $validIds = array_fill_keys(array_column($chunks, 'id'), true);
     $deleteStmt = $pdo->prepare('DELETE FROM knowledge_chunks WHERE id = :id');
     $deleted = 0;
 
-    foreach ($existing as $id => $row) {
-        if (!isset($validIds[$id])) {
-            $deleteStmt->execute([':id' => $id]);
-            $deleted++;
+    $pdo->beginTransaction();
+    try {
+        foreach ($toUpsert as $item) {
+            $chunk     = $item['chunk'];
+            $vector    = $item['vector'];
+            $magnitude = vector_magnitude($vector);
+            $blob      = vector_pack($vector);
+
+            $insertStmt->execute([
+                ':id'               => $chunk['id'],
+                ':slug'             => $chunk['slug'],
+                ':title'            => $chunk['title'],
+                ':tags'             => $chunk['tags'],
+                ':priority'         => $chunk['priority'],
+                ':content'          => $chunk['content'],
+                ':content_hash'     => $item['contentHash'],
+                ':embedding'        => $blob,
+                ':vector_magnitude' => $magnitude,
+                ':embedding_model'  => $model,
+                ':dimensions'       => count($vector),
+                ':created_at'       => time(),
+            ]);
         }
+
+        // Clean up orphaned chunks
+        foreach ($existing as $id => $row) {
+            if (!isset($validIds[$id])) {
+                $deleteStmt->execute([':id' => $id]);
+                $deleted++;
+            }
+        }
+
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        throw $e;
     }
 
     if ($verbose) {

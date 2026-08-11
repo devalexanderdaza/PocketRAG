@@ -86,7 +86,8 @@ function db_get_pdo(string $dbPath): PDO
             $pdo->exec("ALTER TABLE knowledge_chunks ADD COLUMN content_hash TEXT NOT NULL DEFAULT ''");
         }
     } catch (Throwable $e) {
-        // Table might be empty or locked, ignore non-fatal migration error
+        // Log non-fatal migration error for visibility in the PHP error log
+        error_log('db_get_pdo: content_hash migration skipped: ' . $e->getMessage());
     }
 
     $pdoMap[$dbPath] = $pdo;

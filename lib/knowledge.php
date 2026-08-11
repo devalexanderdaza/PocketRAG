@@ -55,7 +55,6 @@ function knowledge_parse_frontmatter(string $raw): array
 }
 
 /**
-/**
  * Split markdown body into optimized chunks with optional overlap.
  * 
  * Respects paragraph boundaries and tries to keep chunks within the configured limits.
@@ -164,8 +163,9 @@ function knowledge_load_chunks(string $directory, ?int $overlapChars = null): ar
     }
 
     foreach ($paths as $path) {
-        $raw = @file_get_contents($path);
+        $raw = file_get_contents($path);
         if ($raw === false) {
+            error_log('knowledge_load_chunks: cannot read file ' . $path);
             continue;
         }
 
