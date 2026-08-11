@@ -14,7 +14,7 @@ require_once __DIR__ . '/lib/http.php';
 require_once __DIR__ . '/lib/knowledge.php';
 require_once __DIR__ . '/lib/retrieval.php';
 require_once __DIR__ . '/lib/prompt.php';
-require_once __DIR__ . '/lib/groq.php';
+require_once __DIR__ . '/lib/llm.php';
 require_once __DIR__ . '/lib/conversation.php';
 require_once __DIR__ . '/lib/telemetry.php';
 
@@ -59,26 +59,22 @@ $sources   = $retrieved['sources'];
 // Build System Prompt
 $systemPrompt = prompt_build($context, 'visitor', 'es');
 
-// Assemble Groq completion messages (system prompt + history + current user message)
-$groqMessages = [
+// Assemble LLM completion messages (system prompt + history + current user message)
+$llmMessages = [
     ['role' => 'system', 'content' => $systemPrompt],
 ];
 
 foreach ($history as $prevMsg) {
-    $groqMessages[] = $prevMsg;
+    $llmMessages[] = $prevMsg;
 }
 
-$groqMessages[] = ['role' => 'user', 'content' => $message];
+$llmMessages[] = ['role' => 'user', 'content' => $message];
 
 $reply = '';
 $error = null;
 
 try {
-    if ($groqApiKey !== '' && !str_contains($groqApiKey, 'your_groq_api_key')) {
-        $reply = groq_complete($groqMessages, $groqApiKey, $groqModel, 512);
-    } else {
-        $reply = '[MOCK RESPONSE]: Please configure your groq_api_key in config.php to receive live responses from Groq LLM. Hybrid Context retrieved successfully for the query: "' . $searchQuery . '".';
-    }
+    $reply = llm_complete($llmMessages, $config, 512);
 } catch (Exception $e) {
     $error = $e->getMessage();
     $reply = 'An error occurred while processing the request.';

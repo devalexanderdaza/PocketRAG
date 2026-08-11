@@ -9,14 +9,10 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../lib/http.php';
 require_once __DIR__ . '/../lib/sync.php';
 
-$configPath = dirname(__DIR__) . '/config.php';
-if (!is_file($configPath)) {
-    $configPath = dirname(__DIR__) . '/config.example.php';
-}
-
-$config = require $configPath;
+$config = http_config();
 
 $dbPath = dirname(__DIR__) . '/data/knowledge.sqlite';
 $knowledgeDir = dirname(__DIR__) . '/data/knowledge';

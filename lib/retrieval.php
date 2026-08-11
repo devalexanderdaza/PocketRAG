@@ -9,6 +9,7 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/http.php';
 require_once __DIR__ . '/knowledge.php';
 require_once __DIR__ . '/synonyms.php';
 require_once __DIR__ . '/db.php';
@@ -60,20 +61,19 @@ function retrieval_select(
     }
 
     // Step 2: Attempt Vector Search via Gemini API
-    $configPath = dirname(__DIR__) . '/config.php';
-    if (!is_file($configPath)) {
-        $configPath = dirname(__DIR__) . '/config.example.php';
-    }
-    $config = require $configPath;
+    $config = http_config();
 
     $apiKeys = $config['gemini_api_keys'] ?? [];
     $model = $config['gemini_model'] ?? 'gemini-embedding-001';
     $dimensions = (int) ($config['gemini_dimensions'] ?? 768);
     $dbPath = dirname(__DIR__) . '/data/knowledge.sqlite';
     $knowledgeDir = dirname(__DIR__) . '/data/knowledge';
+    $autoSync = (bool) ($config['auto_sync_on_retrieval'] ?? true);
 
-    // Freshness Check & Auto-Sync
-    sync_knowledge_if_needed($knowledgeDir, $dbPath, $apiKeys, $model, $dimensions);
+    // Freshness Check & Auto-Sync (if enabled)
+    if ($autoSync) {
+        sync_knowledge_if_needed($knowledgeDir, $dbPath, $apiKeys, $model, $dimensions);
+    }
 
     $queryVector = embeddings_get($expandedQuery, $apiKeys, $model, $dimensions);
     $cosineScores = [];
