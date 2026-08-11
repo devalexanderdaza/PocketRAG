@@ -1,16 +1,16 @@
 # Logs & Databases
-src/data/knowledge.sqlite
-src/data/knowledge.sqlite-journal
-src/data/knowledge.sqlite-wal
-src/data/knowledge.sqlite-shm
+data/knowledge.sqlite
+data/knowledge.sqlite-journal
+data/knowledge.sqlite-wal
+data/knowledge.sqlite-shm
 *.log
 
 # Sensitive Configs
-src/config.php
+config.php
 
 # Ignore private/personalized knowledge files except base.md
-src/data/knowledge/*
-!src/data/knowledge/base.md
+data/knowledge/*
+!data/knowledge/base.md
 
 # Ignore foundation folder (PRDs, architecture documents, backups)
 foundation/
