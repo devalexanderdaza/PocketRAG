@@ -48,6 +48,7 @@ function db_get_pdo(string $dbPath): PDO
             tags TEXT NOT NULL,
             priority INTEGER DEFAULT 5,
             content TEXT NOT NULL,
+            content_hash TEXT NOT NULL DEFAULT '',
             embedding BLOB NOT NULL,
             vector_magnitude REAL NOT NULL,
             embedding_model TEXT NOT NULL,
@@ -69,6 +70,24 @@ function db_get_pdo(string $dbPath): PDO
         );
         CREATE INDEX IF NOT EXISTS idx_telemetry_created ON rag_telemetry(created_at);
     ");
+
+    // Migration: Ensure content_hash column exists on legacy databases
+    try {
+        $stmt = $pdo->query("PRAGMA table_info(knowledge_chunks)");
+        $columns = $stmt->fetchAll();
+        $hasContentHash = false;
+        foreach ($columns as $col) {
+            if (($col['name'] ?? '') === 'content_hash') {
+                $hasContentHash = true;
+                break;
+            }
+        }
+        if (!$hasContentHash) {
+            $pdo->exec("ALTER TABLE knowledge_chunks ADD COLUMN content_hash TEXT NOT NULL DEFAULT ''");
+        }
+    } catch (Throwable $e) {
+        // Table might be empty or locked, ignore non-fatal migration error
+    }
 
     $pdoMap[$dbPath] = $pdo;
     return $pdo;
