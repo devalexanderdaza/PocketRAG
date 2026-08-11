@@ -37,28 +37,46 @@ function groq_complete(
         'messages'    => $messages,
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
-    $ch = curl_init(GROQ_ENDPOINT);
-    if ($ch === false) {
-        throw new RuntimeException('Could not initialise cURL for Groq');
+    $maxRetries = 2;
+    $attempt = 0;
+    $response = false;
+    $status = 0;
+
+    while ($attempt < $maxRetries) {
+        $attempt++;
+        $ch = curl_init(GROQ_ENDPOINT);
+        if ($ch === false) {
+            throw new RuntimeException('Could not initialise cURL for Groq');
+        }
+
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $payload,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => GROQ_TIMEOUT_SECS,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_HTTPHEADER     => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $apiKey,
+                'Accept: application/json',
+            ],
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+        ]);
+
+        $response = curl_exec($ch);
+        $status   = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        unset($ch);
+
+        if ($response !== false && $status >= 200 && $status < 300) {
+            break;
+        }
+
+        // Retry on 429 (rate limit) or 5xx server errors if attempts remain
+        if ($attempt < $maxRetries && ($status === 429 || $status >= 500 || $response === false)) {
+            usleep(500000); // 500ms delay before retry
+        }
     }
-
-    curl_setopt_array($ch, [
-        CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => $payload,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => GROQ_TIMEOUT_SECS,
-        CURLOPT_CONNECTTIMEOUT => 5,
-        CURLOPT_HTTPHEADER     => [
-            'Content-Type: application/json',
-            'Authorization: Bearer ' . $apiKey,
-            'Accept: application/json',
-        ],
-        CURLOPT_SSL_VERIFYPEER => true,
-        CURLOPT_SSL_VERIFYHOST => 2,
-    ]);
-
-    $response = curl_exec($ch);
-    $status   = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
 
     if ($response === false || $status < 200 || $status >= 300) {
         throw new RuntimeException("Groq API error HTTP {$status}");
