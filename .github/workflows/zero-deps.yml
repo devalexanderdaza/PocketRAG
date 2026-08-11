@@ -1,0 +1,31 @@
+name: Zero dependencies
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  no-composer:
+    name: Guard against Composer / vendor
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fail if Composer or vendor appears
+        run: |
+          set -euo pipefail
+          failed=0
+          if [ -f composer.json ] || [ -f composer.lock ]; then
+            echo "::error::composer.json/lock present — PocketRAG forbids Composer (zero external dependencies)."
+            failed=1
+          fi
+          if [ -d vendor ]; then
+            echo "::error::vendor/ directory present — PocketRAG forbids third-party PHP packages."
+            failed=1
+          fi
+          if [ "$failed" -ne 0 ]; then
+            exit 1
+          fi
+          echo "OK: no composer.json, composer.lock, or vendor/."

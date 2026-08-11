@@ -1,3 +1,8 @@
+# Ignore all contents in the next folders
+_bmad/
+_bmad-output/
+.agents/
+
 # Logs & Databases
 data/knowledge.sqlite
 data/knowledge.sqlite-journal
@@ -20,3 +25,6 @@ foundation/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# GitHub Actions workflows
+!.github/
