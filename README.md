@@ -120,8 +120,14 @@ The main endpoint is `index.php`. It accepts `POST` JSON requests:
 }
 ```
 
+## 📚 Documentation
+
+Full reference (architecture, components, pipeline, API, knowledge format, data model, configuration, ops, deploy, contributing):
+
+**[docs/README.md](docs/README.md)**
+
 ## 🤝 Contributing
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/devalexanderdaza/PocketRAG/issues).
+Contributions, issues, and feature requests are welcome! See [docs/contributing.md](docs/contributing.md) and the [issues page](https://github.com/devalexanderdaza/PocketRAG/issues).
 
 ## 📄 License
 This project is licensed under the MIT License - see the LICENSE file for details.
