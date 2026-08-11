@@ -26,6 +26,23 @@ Adding AI capabilities to legacy or lightweight PHP applications usually means s
 - **Conversational Memory**: Automatically reformulates follow-up questions using Groq LLM to maintain chat context during retrieval.
 - **Graceful Fallback**: If the embedding API times out or fails, PocketRAG transparently degrades to pure BM25 lexical search without breaking the app.
 - **Auto-Sync**: Matches Markdown file modification times (`mtime`) and automatically triggers vector synchronization on the fly.
+- **Built-in Web UI**: Lightweight, responsive dark-mode chat interface in `public/` ready to use out of the box with zero build steps.
+
+## 🖥️ Web UI Preview
+
+PocketRAG includes a zero-dependency, dark-mode Web UI out of the box. Simply visit `http://localhost:8080` in your browser when running the local PHP server.
+
+<p align="center">
+  <img src="public/images/image_01.png" alt="PocketRAG Web UI Overview" width="800">
+</p>
+
+<p align="center">
+  <img src="public/images/image_02.png" alt="PocketRAG Chat Response with Citations" width="800">
+</p>
+
+<p align="center">
+  <img src="public/images/image_03.png" alt="PocketRAG Interactive RAG Sources" width="800">
+</p>
 
 ## 🚀 Installation & Setup
 

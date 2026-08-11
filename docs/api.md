@@ -6,11 +6,15 @@ Base endpoint: **`index.php`** (repo root).
 
 | Item | Value |
 |---|---|
-| Method | `POST` (other methods → `405`) |
+| Method | `POST` for RAG API / `GET` serves Web UI (`public/index.html` & static assets) |
 | `OPTIONS` | `204` + CORS headers |
-| Content-Type (request) | `application/json` |
-| Content-Type (response) | `application/json; charset=utf-8` |
+| Content-Type (request) | `application/json` (for POST API) |
+| Content-Type (response) | `application/json; charset=utf-8` (API) / `text/html`, `text/css`, `application/javascript` (UI) |
 | CORS | Value of `allowed_origin` in `config.php` (default: `*`). Set a specific origin to restrict cross-origin access. |
+
+## Web UI
+
+Browsing to `index.php` via `GET` in a web browser automatically serves the built-in single-page chat interface from `public/index.html` along with its static assets (`public/assets/css/chat.css`, `public/assets/js/chat.js`).
 
 ## Request body
 

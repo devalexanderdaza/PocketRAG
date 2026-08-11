@@ -6,7 +6,8 @@ All library code lives under `lib/` as **prefixed global functions** (no namespa
 
 | Path | Role |
 |---|---|
-| `index.php` | POST JSON chat API: normalize history → reformulate → load knowledge → hybrid retrieve → prompt → Groq → telemetry → JSON |
+| `index.php` | Dual entrypoint: GET serves `public/index.html` & static assets (`public/assets/`); POST handles JSON chat RAG API (normalize history → reformulate → load knowledge → hybrid retrieve → prompt → LLM → telemetry → JSON) |
+| `public/` | Web UI assets: `public/index.html`, `public/assets/css/chat.css`, `public/assets/js/chat.js`, `public/images/` |
 | `scripts/sync.php` | CLI ingestion: Markdown → Gemini embeddings → SQLite |
 
 ## Library map
