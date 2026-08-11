@@ -54,7 +54,7 @@ Chunk id example: `base#0`, `base#1`, …
 - Put critical keywords in `title` / `tags` — they boost the first chunk of that slug lexically.
 - Use `priority` > 5 for canonical facts you want favored; < 5 to de-emphasize.
 - Extend synonym coverage in `lib/synonyms.php` when domain jargon fails BM25 (that file currently carries portfolio-oriented maps — customize for your domain).
-- After editing Markdown, run `php scripts/sync.php`. If vectors look stale despite sync, see [How it works — Sync behavior notes](how-it-works.md#sync-behavior-notes).
+- After editing Markdown, run `php scripts/sync.php` (or rely on [Auto-Sync](auto-sync.md) on the next chat). If vectors look stale despite sync, see that doc’s limitations and reset steps.
 
 ## Git policy
 

@@ -7,6 +7,7 @@ Human-facing reference for the PocketRAG hybrid RAG engine. Product overview and
 | [Architecture](architecture.md) | Goals, constraints, high-level design, request flow |
 | [Components](components.md) | Modules under `lib/`, CLI, and entrypoint responsibilities |
 | [How it works](how-it-works.md) | End-to-end pipeline: reformulation → retrieval → generation |
+| [Auto-Sync](auto-sync.md) | Freshness check, mtime gate, CLI vs in-request sync |
 | [API](api.md) | HTTP contract for `index.php` |
 | [Knowledge base](knowledge.md) | Markdown layout, frontmatter, chunking rules |
 | [Data model](data-model.md) | SQLite schema, vector packing, telemetry |

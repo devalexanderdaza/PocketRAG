@@ -84,6 +84,8 @@ Each successful path logs to `rag_telemetry`: original query, search query, mode
 
 ## Sync behavior notes
 
+See **[Auto-Sync](auto-sync.md)** for the full reference. Short version:
+
 - **CLI** (`scripts/sync.php`): always runs `sync_knowledge_run` with verbose output.
-- **Auto-sync**: triggered by Markdown vs DB mtime only.
-- Within a sync run, a chunk is **skipped** if an row already exists with the **same** `embedding_model` and `dimensions` — content edits that keep the same chunk id may not re-embed until those fields change or the row is deleted. After material knowledge edits, delete `data/knowledge.sqlite*` or force a full re-ingest if vectors look stale.
+- **Auto-Sync**: triggered by Markdown vs DB `mtime` only, inside `retrieval_select`.
+- Within a sync run, a chunk is **skipped** if a row already exists with the **same** `embedding_model` and `dimensions` — content edits that keep the same chunk id may not re-embed until those fields change or the row is deleted. After material knowledge edits, delete `data/knowledge.sqlite*` or force a full re-ingest if vectors look stale.

@@ -19,7 +19,7 @@ php scripts/sync.php
 
 Prints processed / skipped / deleted orphan counts. Requires valid Gemini keys for new embeddings.
 
-Auto-sync also runs inside chat when Markdown is newer than the SQLite file. Prefer CLI sync after large edits so the first user request is not paying ingest latency.
+**Auto-Sync** also runs inside chat when any Markdown file is newer than the SQLite file (`sync_knowledge_if_needed`). Prefer CLI sync after large edits so the first user request is not paying ingest latency. Details, limitations, and reset guidance: [Auto-Sync](auto-sync.md).
 
 ## Serve and smoke-test
 

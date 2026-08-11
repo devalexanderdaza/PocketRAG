@@ -65,9 +65,11 @@ Cosine is shifted from `[-1, 1]` to `[0, 1]` before mixing. If no query embeddin
 
 Vectors are stored with `pack('f*')` / `unpack('f*')` (`lib/math.php`). Magnitudes are precomputed at ingest so query-time cosine is a dot product over floats. This keeps the stack deployable as a single file database beside the Markdown sources.
 
-### Auto-sync on freshness
+### Auto-Sync on freshness
 
 Before vector search, `sync_knowledge_if_needed` compares Markdown `mtime` against the SQLite file `mtime`. If any `.md` is newer, it runs the same sync path as the CLI. Prefer an explicit `php scripts/sync.php` after bulk knowledge edits so the first chat request is not blocked by embedding work.
+
+Full behavior, limitations, and ops guidance: [Auto-Sync](auto-sync.md).
 
 ### Conversational reformulation
 

@@ -14,9 +14,10 @@ Zero-dependency hybrid RAG engine for shared PHP hosting. PHP 8+ with PDO SQLite
 
 ## Where things are
 
-- Human docs index: `docs/README.md` (architecture, API, ops, deploy, contributing, …)
+- Human docs index: `docs/README.md` (architecture, API, Auto-Sync, ops, deploy, contributing, …)
 - Chat/API endpoint: `index.php` (POST JSON `message` + optional `history`/`messages`) — contract in `docs/api.md`
-- Ingest CLI: `scripts/sync.php`; sync/retrieval core in `lib/sync.php` and `lib/retrieval.php`
+- Ingest CLI: `scripts/sync.php`; Auto-Sync freshness gate in `lib/sync.php` (`sync_knowledge_if_needed`) — `docs/auto-sync.md`
+- Sync/retrieval core: `lib/sync.php`, `lib/retrieval.php`
 - Library modules: `lib/` (prefixed globals: `bm25_`, `knowledge_`, `retrieval_`, …) — map in `docs/components.md`
 - Knowledge Markdown: `data/knowledge/*.md` — format in `docs/knowledge.md`
 
