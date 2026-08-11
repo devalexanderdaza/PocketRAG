@@ -1,0 +1,20 @@
+# PocketRAG — Security hardening for Apache
+# Deny direct HTTP access to sensitive files
+
+# Block config file
+<FilesMatch "^config\.php$">
+    Require all denied
+</FilesMatch>
+
+# Block SQLite database and WAL/SHM sidecars
+<FilesMatch "\.sqlite(-wal|-shm|-journal)?$">
+    Require all denied
+</FilesMatch>
+
+# Disable directory listing
+Options -Indexes
+
+# Block access to hidden files (e.g. .git, .env)
+<FilesMatch "^\..+">
+    Require all denied
+</FilesMatch>

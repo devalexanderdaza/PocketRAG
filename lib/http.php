@@ -12,7 +12,11 @@ declare(strict_types=1);
 /**
  * Load and cache the configuration array.
  *
+ * Falls back to config.example.php if config.php is missing (useful for dry runs).
+ * Throws RuntimeException if neither file is found.
+ *
  * @return array<string, mixed> The configuration array.
+ * @throws RuntimeException If no configuration file exists.
  */
 function http_config(): array
 {
@@ -20,12 +24,23 @@ function http_config(): array
     if ($config !== null) {
         return $config;
     }
-    $path = dirname(__DIR__) . '/config.php';
+
+    $path         = dirname(__DIR__) . '/config.php';
+    $fallbackPath = dirname(__DIR__) . '/config.example.php';
+
     if (!is_file($path)) {
-        $path = dirname(__DIR__) . '/config.example.php';
+        if (!is_file($fallbackPath)) {
+            throw new RuntimeException(
+                'PocketRAG: No configuration file found. '
+                . 'Copy config.example.php to config.php and add your API keys.'
+            );
+        }
+        $path = $fallbackPath;
     }
-    $config = require $path;
-    return is_array($config) ? $config : [];
+
+    $loaded = require $path;
+    $config = is_array($loaded) ? $loaded : [];
+    return $config;
 }
 
 /**
@@ -45,8 +60,9 @@ function http_send_cors(): void
  *
  * @param int $status The HTTP status code.
  * @param array<string, mixed> $payload The data payload to serialize.
+ * @return never
  */
-function http_send_json(int $status, array $payload): void
+function http_send_json(int $status, array $payload): never
 {
     if (!headers_sent()) {
         http_response_code($status);

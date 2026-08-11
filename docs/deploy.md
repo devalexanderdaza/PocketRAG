@@ -33,28 +33,28 @@ Prefer the repository root as the web root so `/index.php` is reachable. If the 
 
 Enable: `pdo_sqlite`, `curl`, `mbstring`, `json` (usually default).
 
-## Secrets on shared hosting
+## Security Hardening (Critical)
 
-Common pattern: keep `config.php` outside the web root and require it — **current code expects `config.php` next to `index.php`**. If you relocate it, change `http_config()` / sync path resolution together. Until then, protect `config.php` with host rules (deny HTTP access) if the tree is web-visible.
+> **Important:** PocketRAG stores sensitive API keys and user queries. You must secure it.
 
-Suggested Apache fragment (if allowed):
+If you are using Apache, a `.htaccess` file is included in the repository that automatically blocks direct access to `config.php` and your `data/*.sqlite` files.
 
-```apache
-<Files "config.php">
-  Require all denied
-</Files>
-```
+If you are using Nginx or another web server, you **must** configure it manually.
 
-Deny web access to `data/*.sqlite*` similarly when possible.
+For full instructions, including rate limiting setup, read the [Security Guide](security.md).
 
 ## Post-deploy checklist
 
-1. `config.php` present with real Groq + Gemini keys
-2. Knowledge Markdown deployed
-3. Run `php scripts/sync.php` over SSH/CLI, or hit chat once and allow auto-sync (CLI preferred)
-4. `curl` POST smoke test against the public URL
-5. Confirm `mode: hybrid` on a known question
-6. Confirm `data/knowledge.sqlite` created and growing
+1. ✅ PHP 8.1+ active?
+2. ✅ `pdo_sqlite` and `curl` enabled?
+3. ✅ `data/` directory writable by the web server?
+4. ✅ `config.php` populated with keys?
+5. ✅ `php scripts/sync.php` ran successfully?
+6. ✅ `https://yourdomain.com/config.php` returns a **403 Forbidden** error?
+7. ✅ `https://yourdomain.com/data/knowledge.sqlite` returns a **403 Forbidden** error?
+8. `curl` POST smoke test against the public URL
+9. Confirm `mode: hybrid` on a known question
+10. Confirm `data/knowledge.sqlite` created and growing
 
 ## Scaling expectations
 
