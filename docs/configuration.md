@@ -18,6 +18,10 @@ Both `index.php` and sync/retrieval fall back to `config.example.php` if `config
 | `telemetry_enabled` | bool | `true` | `telemetry_log` toggle for SQLite request logging |
 | `auto_sync_on_retrieval` | bool | `true` | `retrieval_select` toggle for fast mtime/hash freshness auto-sync |
 | `chunk_overlap_chars` | int | `150` | `knowledge_split_body` character context overlap between chunks |
+| `default_fallback_slugs` | array | `['profile', 'cv', 'about']` | Default documents to return if no search match |
+| `rate_limit_enabled` | bool | `false` | Enable SQLite-based IP rate limiting |
+| `rate_limit_rpm` | int | `30` | Max requests per IP within the window |
+| `rate_limit_window` | int | `60` | Time window in seconds for the rate limit |
 | `llm_provider` | string | `groq` | `llm_complete` dispatcher selection (`groq`, `ollama`, `openai`) |
 | `groq_api_key` | string | placeholder `gsk_…` | Groq reformulation + completion. Placeholder / empty → mock reply |
 | `groq_model` | string | `llama-3.3-70b-versatile` | Groq model id |
