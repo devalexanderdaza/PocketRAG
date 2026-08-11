@@ -1,0 +1,22 @@
+# Logs & Databases
+src/data/knowledge.sqlite
+src/data/knowledge.sqlite-journal
+src/data/knowledge.sqlite-wal
+src/data/knowledge.sqlite-shm
+*.log
+
+# Sensitive Configs
+src/config.php
+
+# Ignore private/personalized knowledge files except base.md
+src/data/knowledge/*
+!src/data/knowledge/base.md
+
+# Ignore foundation folder (PRDs, architecture documents, backups)
+foundation/
+
+# OS and IDE files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
