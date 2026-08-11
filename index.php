@@ -19,6 +19,42 @@ require_once __DIR__ . '/lib/conversation.php';
 require_once __DIR__ . '/lib/telemetry.php';
 require_once __DIR__ . '/lib/rate_limit.php';
 
+// Serve Chat UI and static assets from public/ directory on GET requests
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
+    $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+    $publicDir = __DIR__ . '/public';
+    
+    // Normalize path
+    $filePath = realpath($publicDir . $uri);
+    
+    // If request points directly to a file inside public/ (e.g. assets/css/chat.css)
+    if ($filePath && str_starts_with($filePath, $publicDir) && is_file($filePath)) {
+        $ext = pathinfo($filePath, PATHINFO_EXTENSION);
+        $mimeTypes = [
+            'css'  => 'text/css; charset=utf-8',
+            'js'   => 'application/javascript; charset=utf-8',
+            'html' => 'text/html; charset=utf-8',
+            'png'  => 'image/png',
+            'jpg'  => 'image/jpeg',
+            'svg'  => 'image/svg+xml',
+            'ico'  => 'image/x-icon'
+        ];
+        
+        $mime = $mimeTypes[$ext] ?? 'text/plain';
+        header("Content-Type: {$mime}");
+        readfile($filePath);
+        exit(0);
+    }
+    
+    // Fallback to serving public/index.html
+    $indexHtml = $publicDir . '/index.html';
+    if (file_exists($indexHtml)) {
+        header('Content-Type: text/html; charset=utf-8');
+        readfile($indexHtml);
+        exit(0);
+    }
+}
+
 http_require_post();
 
 // Rate limiting check (SQLite-based sliding window; enabled via config)
@@ -63,7 +99,7 @@ $context   = $retrieved['context'];
 $sources   = $retrieved['sources'];
 
 // Build System Prompt
-$systemPrompt = prompt_build($context, 'visitor', 'es');
+$systemPrompt = prompt_build($context, 'visitor', 'en');
 
 // Assemble LLM completion messages (system prompt + history + current user message)
 $llmMessages = [
