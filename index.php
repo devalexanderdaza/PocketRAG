@@ -17,8 +17,17 @@ require_once __DIR__ . '/lib/prompt.php';
 require_once __DIR__ . '/lib/llm.php';
 require_once __DIR__ . '/lib/conversation.php';
 require_once __DIR__ . '/lib/telemetry.php';
+require_once __DIR__ . '/lib/rate_limit.php';
 
 http_require_post();
+
+// Rate limiting check (SQLite-based sliding window; enabled via config)
+$dbPath = __DIR__ . '/data/knowledge.sqlite';
+if (!rate_limit_check($dbPath, rate_limit_get_ip())) {
+    header('Retry-After: 60');
+    http_send_json(429, ['error' => 'Too many requests. Please slow down.']);
+}
+
 $body = http_read_json_body();
 
 $message = trim((string) ($body['message'] ?? ''));
@@ -41,11 +50,8 @@ $startTime = microtime(true);
 $config = http_config();
 $knowledgeDir = __DIR__ . '/data/knowledge';
 
-$groqApiKey = (string) ($config['groq_api_key'] ?? '');
-$groqModel  = (string) ($config['groq_model'] ?? 'llama-3.3-70b-versatile');
-
-// Reformulate query if conversation history exists
-$searchQuery = conversation_reformulate_query($message, $history, $groqApiKey, $groqModel);
+// Reformulate query using the configured LLM provider (if conversation history exists)
+$searchQuery = conversation_reformulate_query($message, $history, $config);
 
 // Load chunks and build BM25 index
 $chunks = knowledge_load_chunks($knowledgeDir);
@@ -81,7 +87,6 @@ try {
 }
 
 $durationMs = round((microtime(true) - $startTime) * 1000, 2);
-$dbPath = __DIR__ . '/data/knowledge.sqlite';
 
 telemetry_log(
     $dbPath,
