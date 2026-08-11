@@ -33,7 +33,9 @@ function http_config(): array
  */
 function http_send_cors(): void
 {
-    header('Access-Control-Allow-Origin: *');
+    $config = http_config();
+    $origin = (string) ($config['allowed_origin'] ?? '*');
+    header('Access-Control-Allow-Origin: ' . $origin);
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type');
 }

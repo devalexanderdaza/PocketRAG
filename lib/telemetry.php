@@ -10,6 +10,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/http.php';
 
 /**
  * Log a RAG request to the rag_telemetry SQLite table.
@@ -33,6 +34,13 @@ function telemetry_log(
     int $sourcesCount,
     float $durationMs
 ): void {
+    $config = http_config();
+    $telemetryEnabled = (bool) ($config['telemetry_enabled'] ?? true);
+
+    if (!$telemetryEnabled) {
+        return;
+    }
+
     try {
         $pdo = db_get_pdo($dbPath);
         $stmt = $pdo->prepare('
