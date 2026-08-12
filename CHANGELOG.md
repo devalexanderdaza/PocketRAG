@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-08-12
+
 ### Security
 - **CRITICAL**: Added `.htaccess` to block direct HTTP access to `config.php` and SQLite databases (`data/*.sqlite`).
 - Added SQLite-based sliding window rate limiting (configurable via `rate_limit_enabled`, `rate_limit_rpm`, `rate_limit_window`).
+- Hardened `rate_limit_get_ip()` against `X-Forwarded-For` spoofing: the proxy chain is only trusted when `REMOTE_ADDR` is in `trusted_proxies` (new config key), forwarded entries are validated, and malformed/forged chains fail safe to `0.0.0.0`.
 - `http_config()` now throws a `RuntimeException` instead of failing silently if `config.php` (or `config.example.php`) is missing, preventing unintended unconfigured states.
 - Created `docs/security.md` detailing hardening for Apache, Nginx, and rate limiter configuration.
 
@@ -21,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Handled structured JSON error responses from LLM API providers so they are thrown as readable `RuntimeExceptions`.
 - Fixed silent failures in `db_get_pdo` migrations and Markdown file loading by explicitly logging them via `error_log`.
 - Fixed duplicate PHPDoc block in `knowledge_split_body`.
+- Fixed test (8.1) failure by restoring trusted-proxy IP resolution in `rate_limit_get_ip()`.
 - Corrected documentation in `docs/api.md` (CORS is properly applied) and `docs/auto-sync.md` (chunk skip logic relies on `content_hash`).
 
 ### Changed
@@ -31,8 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved static analysis by adding `@return never` to `http_send_json`.
 - Unified embedding sync timeout to use `EMBEDDINGS_SYNC_TIMEOUT_SECS` (15s) instead of a hardcoded 5 seconds.
 - Added explicit SSL verification and a configurable timeout (`OLLAMA_TIMEOUT_SECS`) to the Ollama client.
+- Documented strict git-flow branching convention in `docs/contributing.md` and added `ROADMAP.md`.
+- Aligned README and docs with the current code (multi-provider reformulation, config-throw behavior, updated API components).
 
 ### Added
-- Pure PHP, zero-dependency unit testing harness (`tests/run.php`) and test suites for BM25, Math, Knowledge, Synonyms, and Conversation modules.
-- GitHub Actions CI workflow to run the test suite on Push/PR.
+- Pure PHP, zero-dependency unit testing harness (`tests/run.php`) with 1:1 lib→test coverage (BM25, Math, Knowledge, Synonyms, Conversation, DB, Embeddings, HTTP, LLM providers, Prompt, Retrieval, Sync, Telemetry, Rate Limit).
+- GitHub Actions CI workflow running the suite on push/PR to `main` and `develop` under a PHP 8.1/8.2/8.3 matrix.
 - Created `docs/customization.md` to guide users on modifying the assistant's behavior without editing source code.

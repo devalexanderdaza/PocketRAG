@@ -23,7 +23,7 @@ Adding AI capabilities to legacy or lightweight PHP applications usually means s
 - **Zero Dependencies**: Uses only native PHP extensions (PDO SQLite). No `vendor/` bloat.
 - **Hybrid Search**: Intelligently combines **Lexical Search** (native Okapi BM25 implementation) and **Vector Search** (Cosine Similarity on embeddings).
 - **SQLite Vector Storage**: Stores and searches vector embeddings using a highly optimized C-binary packing (`pack('f*')`) inside standard SQLite.
-- **Conversational Memory**: Automatically reformulates follow-up questions using Groq LLM to maintain chat context during retrieval.
+- **Conversational Memory**: Automatically reformulates follow-up questions using the configured LLM provider to maintain chat context during retrieval.
 - **Graceful Fallback**: If the embedding API times out or fails, PocketRAG transparently degrades to pure BM25 lexical search without breaking the app.
 - **Auto-Sync**: Matches Markdown file modification times (`mtime`) and automatically triggers vector synchronization on the fly.
 - **Built-in Web UI**: Lightweight, responsive dark-mode chat interface in `public/` ready to use out of the box with zero build steps.
@@ -98,10 +98,10 @@ PocketRAG orchestrates search using a custom Hybrid Scoring formula:
 > `Score = (0.7 * Normalized Cosine Similarity) + (0.3 * Normalized BM25)`
 
 1. **User asks a question**.
-2. **Context Reformulation**: If there's chat history, Groq reformulates the query into a standalone sentence.
+2. **Context Reformulation**: If there's chat history, the configured LLM reformulates the query into a standalone sentence.
 3. **BM25 Search**: The query is expanded using a bilingual synonym dictionary and run against a native PHP Okapi BM25 engine.
 4. **Vector Search**: The query is embedded via Gemini API and compared against SQLite binary BLOBs using Cosine Similarity.
-5. **LLM Generation**: The top results are injected into a prompt, and Groq generates the final conversational response.
+5. **LLM Generation**: The top results are injected into a prompt, and the configured LLM generates the final conversational response.
 
 ## 📡 API Usage
 

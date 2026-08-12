@@ -8,6 +8,8 @@ data/knowledge.sqlite
 data/knowledge.sqlite-journal
 data/knowledge.sqlite-wal
 data/knowledge.sqlite-shm
+tests/*.sqlite
+tests/tmp/
 *.log
 
 # Sensitive Configs
