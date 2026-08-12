@@ -18,4 +18,4 @@ Human-facing reference for the PocketRAG hybrid RAG engine. Product overview and
 | [Deploy](deploy.md) | Shared hosting / PHP drop-in deployment |
 | [Contributing](contributing.md) | Conventions, zero-deps policy, PR expectations |
 
-Planning artifacts (when present) live under `_bmad-output/` and are not part of this tree. Do not treat `foundation/` as product documentation.
+Do not treat `foundation/` as product documentation.
