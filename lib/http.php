@@ -20,6 +20,13 @@ declare(strict_types=1);
  */
 function http_config(): array
 {
+    if (defined('POCKETRAG_TEST_CONFIG')) {
+        $override = constant('POCKETRAG_TEST_CONFIG');
+        if (is_array($override)) {
+            return $override;
+        }
+    }
+
     static $config = null;
     if ($config !== null) {
         return $config;

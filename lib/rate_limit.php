@@ -88,17 +88,27 @@ function rate_limit_check(string $dbPath, string $ip): bool
 }
 
 /**
- * Resolve the real client IP address, respecting common proxy headers.
+ * Resolve the real client IP address, respecting trusted proxy headers.
  *
  * @return string The resolved IP address, or '0.0.0.0' as a safe fallback.
  */
 function rate_limit_get_ip(): string
 {
-    // Respect X-Forwarded-For only if set (shared hosting / reverse proxy)
+    $trustedProxies = http_config()['trusted_proxies'] ?? [];
+    $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
     $forwarded = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
-    if ($forwarded !== '') {
-        // Take the first (client-most) IP in a comma-separated list
-        return trim(explode(',', $forwarded)[0]);
+
+    if ($forwarded !== '' && in_array($remoteAddr, $trustedProxies, true)) {
+        $ips = array_map('trim', explode(',', $forwarded));
+        for ($i = count($ips) - 1; $i >= 0; $i--) {
+            if (!filter_var($ips[$i], FILTER_VALIDATE_IP)) {
+                return '0.0.0.0';
+            }
+            if (!in_array($ips[$i], $trustedProxies, true)) {
+                return $ips[$i];
+            }
+        }
     }
-    return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+
+    return filter_var($remoteAddr, FILTER_VALIDATE_IP) ? $remoteAddr : '0.0.0.0';
 }
