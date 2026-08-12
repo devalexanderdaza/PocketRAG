@@ -82,8 +82,8 @@ function embeddings_get(
         $response = curl_exec($ch);
         $status   = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
 
-        // Rate limit (429) or quota exceeded (403): rotate to next key
-        if ($status === 429 || $status === 403) {
+        // Rate limit (429), quota exceeded (403), or server error (5xx): rotate to next key
+        if ($status === 429 || $status === 403 || $status >= 500) {
             error_log("embeddings_get: Key rate-limited (HTTP {$status}). Rotating key...");
             continue;
         }

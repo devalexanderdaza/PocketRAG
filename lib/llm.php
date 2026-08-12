@@ -31,24 +31,41 @@ function llm_complete(
 ): string {
     $provider = strtolower((string) ($config['llm_provider'] ?? 'groq'));
 
+    // Mock detection for all providers
+    $groqApiKey    = (string) ($config['groq_api_key'] ?? '');
+    $openaiApiKey  = (string) ($config['openai_api_key'] ?? '');
+    $ollamaEndpoint = (string) ($config['ollama_endpoint'] ?? '');
+    $ollamaModel   = (string) ($config['ollama_model'] ?? '');
+    $ollamaApiKey  = (string) ($config['ollama_api_key'] ?? '');
+
+    if ($provider === 'groq' && ($groqApiKey === '' || str_contains($groqApiKey, 'your_groq_api_key'))) {
+        return '[MOCK RESPONSE]: Please configure your LLM API key in config.php to receive live responses.';
+    }
+    if ($provider === 'openai' && ($openaiApiKey === '' || str_contains($openaiApiKey, 'your_openai_api_key'))) {
+        return '[MOCK RESPONSE]: Please configure your LLM API key in config.php to receive live responses.';
+    }
+    if ($provider === 'ollama' && (
+        (str_contains($ollamaEndpoint, 'localhost') && $ollamaModel === '') ||
+        str_contains($ollamaApiKey, 'your_ollama')
+    )) {
+        return '[MOCK RESPONSE]: Please configure your LLM API key in config.php to receive live responses.';
+    }
+
     switch ($provider) {
         case 'ollama':
-            $endpoint = (string) ($config['ollama_endpoint'] ?? 'http://localhost:11434/v1/chat/completions');
-            $model    = (string) ($config['ollama_model'] ?? 'llama3.2');
+            $endpoint = $ollamaEndpoint !== '' ? $ollamaEndpoint : 'http://localhost:11434/v1/chat/completions';
+            $model    = $ollamaModel !== '' ? $ollamaModel : 'llama3.2';
             return ollama_complete($messages, $endpoint, $model, $maxTokens, $temperature);
 
         case 'openai':
-            $apiKey = (string) ($config['openai_api_key'] ?? '');
+            $apiKey = $openaiApiKey;
             $model  = (string) ($config['openai_model'] ?? 'gpt-4o-mini');
             return openai_complete($messages, $apiKey, $model, $maxTokens, $temperature);
 
         case 'groq':
         default:
-            $apiKey = (string) ($config['groq_api_key'] ?? '');
+            $apiKey = $groqApiKey;
             $model  = (string) ($config['groq_model'] ?? 'llama-3.3-70b-versatile');
-            if ($apiKey === '' || str_contains($apiKey, 'your_groq_api_key')) {
-                return '[MOCK RESPONSE]: Please configure your LLM API key in config.php to receive live responses.';
-            }
             return groq_complete($messages, $apiKey, $model, $maxTokens, $temperature);
     }
 }
