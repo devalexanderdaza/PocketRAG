@@ -50,6 +50,12 @@ function llm_complete(
     )) {
         return '[MOCK RESPONSE]: Please configure your LLM API key in config.php to receive live responses.';
     }
+    // Default case (unsupported provider) uses groq — check groq key for mock
+    if ($provider !== 'groq' && $provider !== 'openai' && $provider !== 'ollama'
+        && ($groqApiKey === '' || str_contains($groqApiKey, 'your_groq_api_key'))
+    ) {
+        return '[MOCK RESPONSE]: Please configure your LLM API key in config.php to receive live responses.';
+    }
 
     switch ($provider) {
         case 'ollama':
