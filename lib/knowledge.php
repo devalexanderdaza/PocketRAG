@@ -11,8 +11,181 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/bm25.php';
 
-const KNOWLEDGE_MIN_CHUNK_CHARS = 320;
-const KNOWLEDGE_MAX_CHUNK_CHARS = 900;
+/**
+ * Split markdown body into optimized chunks with optional overlap.
+ *
+ * Respects heading hierarchy, paragraph boundaries, fenced code blocks,
+ * and tries to keep chunks within the configured limits.
+ *
+ * @param string $body The markdown body to split.
+ * @param int $overlapChars Characters of context overlap between chunks.
+ * @param int|null $minChars Override minimum chunk size (uses config if null).
+ * @param int|null $maxChars Override maximum chunk size (uses config if null).
+ * @return list<string> Array of text chunks.
+ */
+function knowledge_split_body(string $body, int $overlapChars = 150, ?int $minChars = null, ?int $maxChars = null): array
+{
+    $minChars = $minChars ?? (function_exists('http_config') ? (int) (http_config()['chunk_min_chars'] ?? 320) : 320);
+    $maxChars = $maxChars ?? (function_exists('http_config') ? (int) (http_config()['chunk_max_chars'] ?? 900) : 900);
+
+    $segments = knowledge_split_by_structure($body);
+
+    $chunks = [];
+    foreach ($segments as $segment) {
+        $lastIndex = count($chunks) - 1;
+        if ($lastIndex >= 0 && strlen($chunks[$lastIndex]) < $minChars && strlen($chunks[$lastIndex]) + strlen($segment) <= $maxChars) {
+            $chunks[$lastIndex] .= "\n\n" . $segment;
+            continue;
+        }
+        $chunks[] = $segment;
+    }
+
+    $count = count($chunks);
+    if ($count > 1 && strlen($chunks[$count - 1]) < $minChars) {
+        $candidate = $chunks[$count - 2] . "\n\n" . $chunks[$count - 1];
+        if (strlen($candidate) <= $maxChars) {
+            array_splice($chunks, $count - 2, 2, [$candidate]);
+        }
+    }
+
+    $bounded = [];
+    foreach ($chunks as $chunk) {
+        if (strlen($chunk) <= $maxChars) {
+            $bounded[] = $chunk;
+            continue;
+        }
+        $sentences = preg_split('/(?<=[.!?])\s+/', $chunk) ?: [$chunk];
+        $buffer    = '';
+        foreach ($sentences as $sentence) {
+            if ($buffer !== '' && strlen($buffer) + strlen($sentence) + 1 > $maxChars) {
+                $bounded[] = trim($buffer);
+                $buffer    = '';
+            }
+            $buffer = $buffer === '' ? $sentence : $buffer . ' ' . $sentence;
+        }
+        if (trim($buffer) !== '') {
+            $bounded[] = trim($buffer);
+        }
+    }
+
+    if ($overlapChars > 0 && count($bounded) > 1) {
+        $overlapped = [$bounded[0]];
+        $totalBounded = count($bounded);
+        for ($i = 1; $i < $totalBounded; $i++) {
+            $prev = $bounded[$i - 1];
+            $prefix = mb_strlen($prev, 'UTF-8') > $overlapChars ? mb_substr($prev, -$overlapChars, null, 'UTF-8') : $prev;
+            $spacePos = mb_strpos($prefix, ' ', 0, 'UTF-8');
+            if ($spacePos !== false && $spacePos < 30) {
+                $prefix = mb_substr($prefix, $spacePos + 1, null, 'UTF-8');
+            }
+            $overlapped[] = '[...] ' . trim($prefix) . "\n\n" . $bounded[$i];
+        }
+        return $overlapped;
+    }
+
+    return $bounded;
+}
+
+/**
+ * Split markdown body by structural boundaries (headings, fenced code blocks).
+ *
+ * @param string $body The markdown body.
+ * @return list<string> Raw segments divided at structural boundaries.
+ */
+function knowledge_split_by_structure(string $body): array
+{
+    $lines = explode("\n", $body);
+    $segments = [];
+    $current = [];
+    $inCodeBlock = false;
+    $headingStack = [];
+
+    foreach ($lines as $line) {
+        if (preg_match('/^```/', $line)) {
+            if (!$inCodeBlock) {
+                if (!empty($current)) {
+                    $segment = trim(implode("\n", $current));
+                    if ($segment !== '') {
+                        $segments[] = $segment;
+                    }
+                    $current = [];
+                }
+                $inCodeBlock = true;
+                $current[] = $line;
+            } else {
+                $current[] = $line;
+                $segment = trim(implode("\n", $current));
+                if ($segment !== '') {
+                    $segments[] = $segment;
+                }
+                $current = [];
+                $inCodeBlock = false;
+            }
+            continue;
+        }
+
+        if ($inCodeBlock) {
+            $current[] = $line;
+            continue;
+        }
+
+        if (preg_match('/^(#{1,6})\s+(.+)$/', $line, $hm)) {
+            $level = strlen($hm[1]);
+
+            if (!empty($current)) {
+                $segment = trim(implode("\n", $current));
+                if ($segment !== '') {
+                    $segments[] = $segment;
+                }
+                $current = [];
+            }
+
+            while (count($headingStack) > 0 && $headingStack[count($headingStack) - 1] >= $level) {
+                array_pop($headingStack);
+            }
+            $headingStack[] = $level;
+
+            $current[] = $line;
+            continue;
+        }
+
+        if (trim($line) === '') {
+            if (!empty($current)) {
+                $segment = trim(implode("\n", $current));
+                if ($segment !== '') {
+                    $segments[] = $segment;
+                }
+                $current = [];
+            }
+            continue;
+        }
+        $current[] = $line;
+    }
+
+    if (!empty($current)) {
+        $segment = trim(implode("\n", $current));
+        if ($segment !== '') {
+            $segments[] = $segment;
+        }
+    }
+
+    $merged = [];
+    $carry  = '';
+    foreach ($segments as $segment) {
+        $isBareLabel = !str_contains($segment, "\n") && substr($segment, -1) === ':' && mb_strlen($segment) < 60;
+        if ($isBareLabel) {
+            $carry = $carry === '' ? $segment : $carry . "\n" . $segment;
+            continue;
+        }
+        $merged[] = $carry === '' ? $segment : $carry . "\n" . $segment;
+        $carry    = '';
+    }
+    if ($carry !== '') {
+        $merged[] = $carry;
+    }
+
+    return array_values(array_filter($merged, fn($s) => $s !== ''));
+}
 
 /**
  * Parse frontmatter and body from a raw markdown string.
@@ -52,94 +225,6 @@ function knowledge_parse_frontmatter(string $raw): array
     }
 
     return ['meta' => $meta, 'body' => trim($body)];
-}
-
-/**
- * Split markdown body into optimized chunks with optional overlap.
- * 
- * Respects paragraph boundaries and tries to keep chunks within the configured limits.
- *
- * @param string $body The markdown body to split.
- * @param int $overlapChars Characters of context overlap between chunks.
- * @return list<string> Array of text chunks.
- */
-function knowledge_split_body(string $body, int $overlapChars = 150): array
-{
-    $paragraphs = preg_split('/\n\s*\n/', $body) ?: [];
-    $paragraphs = array_values(array_filter(
-        array_map(fn($p) => trim($p), $paragraphs),
-        fn($p) => $p !== ''
-    ));
-
-    $merged = [];
-    $carry  = '';
-    foreach ($paragraphs as $paragraph) {
-        $isBareLabel = !str_contains($paragraph, "\n") && substr($paragraph, -1) === ':' && mb_strlen($paragraph) < 60;
-        if ($isBareLabel) {
-            $carry = $carry === '' ? $paragraph : $carry . "\n" . $paragraph;
-            continue;
-        }
-        $merged[] = $carry === '' ? $paragraph : $carry . "\n" . $paragraph;
-        $carry    = '';
-    }
-    if ($carry !== '') {
-        $merged[] = $carry;
-    }
-
-    $chunks = [];
-    foreach ($merged as $paragraph) {
-        $lastIndex = count($chunks) - 1;
-        if ($lastIndex >= 0 && strlen($chunks[$lastIndex]) < KNOWLEDGE_MIN_CHUNK_CHARS && strlen($chunks[$lastIndex]) + strlen($paragraph) <= KNOWLEDGE_MAX_CHUNK_CHARS) {
-            $chunks[$lastIndex] .= "\n\n" . $paragraph;
-            continue;
-        }
-        $chunks[] = $paragraph;
-    }
-
-    $count = count($chunks);
-    if ($count > 1 && strlen($chunks[$count - 1]) < KNOWLEDGE_MIN_CHUNK_CHARS) {
-        $candidate = $chunks[$count - 2] . "\n\n" . $chunks[$count - 1];
-        if (strlen($candidate) <= KNOWLEDGE_MAX_CHUNK_CHARS) {
-            array_splice($chunks, $count - 2, 2, [$candidate]);
-        }
-    }
-
-    $bounded = [];
-    foreach ($chunks as $chunk) {
-        if (strlen($chunk) <= KNOWLEDGE_MAX_CHUNK_CHARS) {
-            $bounded[] = $chunk;
-            continue;
-        }
-        $sentences = preg_split('/(?<=[.!?])\s+/', $chunk) ?: [$chunk];
-        $buffer    = '';
-        foreach ($sentences as $sentence) {
-            if ($buffer !== '' && strlen($buffer) + strlen($sentence) + 1 > KNOWLEDGE_MAX_CHUNK_CHARS) {
-                $bounded[] = trim($buffer);
-                $buffer    = '';
-            }
-            $buffer = $buffer === '' ? $sentence : $buffer . ' ' . $sentence;
-        }
-        if (trim($buffer) !== '') {
-            $bounded[] = trim($buffer);
-        }
-    }
-
-    if ($overlapChars > 0 && count($bounded) > 1) {
-        $overlapped = [$bounded[0]];
-        $totalBounded = count($bounded);
-        for ($i = 1; $i < $totalBounded; $i++) {
-            $prev = $bounded[$i - 1];
-            $prefix = mb_strlen($prev, 'UTF-8') > $overlapChars ? mb_substr($prev, -$overlapChars, null, 'UTF-8') : $prev;
-            $spacePos = mb_strpos($prefix, ' ', 0, 'UTF-8');
-            if ($spacePos !== false && $spacePos < 30) {
-                $prefix = mb_substr($prefix, $spacePos + 1, null, 'UTF-8');
-            }
-            $overlapped[] = '[...] ' . trim($prefix) . "\n\n" . $bounded[$i];
-        }
-        return $overlapped;
-    }
-
-    return $bounded;
 }
 
 /**

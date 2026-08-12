@@ -15,7 +15,9 @@ return [
     'allowed_origin'         => '*',
     'telemetry_enabled'      => true,
     'auto_sync_on_retrieval' => true,
-    'chunk_overlap_chars'    => 150,
+    'chunk_min_chars'       => 320,
+    'chunk_max_chars'       => 900,
+    'chunk_overlap_chars'   => 150,
 
     // Slugs used as fallback context when no chunk scores above zero.
     // Add slugs that represent your "default" or "about" documents.
@@ -49,4 +51,8 @@ return [
     'rate_limit_rpm'     => 30,        // max requests per IP per window
     'rate_limit_window'  => 60,        // window duration in seconds
     'trusted_proxies'    => [],        // IPs of trusted reverse proxies
+
+    // Hybrid search strategy: 'rrf' (Reciprocal Rank Fusion, robust to score scale differences)
+    // or 'linear' (legacy 0.7*cosine + 0.3*BM25 blend).
+    'hybrid_strategy' => 'rrf',
 ];

@@ -20,6 +20,48 @@ require_once __DIR__ . '/sync.php';
 const RETRIEVAL_TOP_K = 4;
 const RETRIEVAL_CITATION_RATIO = 0.35;
 const RETRIEVAL_MAX_CITATIONS = 3;
+const RETRIEVAL_RRF_K = 60;
+
+/**
+ * Fuse two ranked lists using Reciprocal Rank Fusion.
+ *
+ * RRF formula: score_rrf[chunk_id] += 1/(k + rank_position)
+ * where rank_position is 1-based. Handles chunks present in only one list.
+ *
+ * @param list<array{id:string,score:float}> $bm25Hits BM25 hits sorted by score descending.
+ * @param array<string,float> $cosineScores Cosine scores indexed by chunk ID (already normalized 0-1).
+ * @param int $k RRF constant (default 60).
+ * @return list<array{id:string,score:float}> Fused and sorted results.
+ */
+function retrieval_rrf_fuse(array $bm25Hits, array $cosineScores, int $k = RETRIEVAL_RRF_K): array
+{
+    $rrfScores = [];
+
+    foreach ($bm25Hits as $position => $hit) {
+        $rank = $position + 1;
+        $id = $hit['id'];
+        $rrfScores[$id] = ($rrfScores[$id] ?? 0.0) + (1.0 / ($k + $rank));
+    }
+
+    $cosineIds = array_keys($cosineScores);
+    $cosineSorted = $cosineScores;
+    arsort($cosineSorted);
+    foreach (array_keys($cosineSorted) as $position => $id) {
+        $rank = $position + 1;
+        $rrfScores[$id] = ($rrfScores[$id] ?? 0.0) + (1.0 / ($k + $rank));
+    }
+
+    $fused = [];
+    foreach ($rrfScores as $id => $score) {
+        $fused[] = ['id' => $id, 'score' => $score];
+    }
+
+    usort($fused, static function (array $a, array $b): int {
+        return $b['score'] <=> $a['score'];
+    });
+
+    return $fused;
+}
 
 /**
  * Select top K context chunks using Hybrid Search (Cosine + BM25).
@@ -31,13 +73,15 @@ const RETRIEVAL_MAX_CITATIONS = 3;
  * @param array{docs:list<array{id:string,len:int,freqs:array<string,int>}>,df:array<string,int>,avgdl:float,n:int} $index Precomputed BM25 index.
  * @param string $message The standalone query to search for.
  * @param string $flowId Optional conversational flow ID.
+ * @param array{slug:string|null,tags:list<string>|null}|null $filter Optional pre-filter for multi-tenancy (slug = exact match, tags = OR logic for LIKE matches).
  * @return array{context:string,sources:list<array{id:string,label:string,snippet:string,score:float}>,mode:string,fallback_occurred:bool,fallback_reason:string|null} Retrieval results.
  */
 function retrieval_select(
     array $chunks,
     array $index,
     string $message,
-    string $flowId = ''
+    string $flowId = '',
+    ?array $filter = null
 ): array {
     $byId = [];
     foreach ($chunks as $chunk) {
@@ -83,7 +127,9 @@ function retrieval_select(
             $pdo = db_get_pdo($dbPath);
             $queryMag = vector_magnitude($queryVector);
 
-            $stmt = $pdo->query('SELECT id, embedding, vector_magnitude FROM knowledge_chunks');
+            [$sql, $params] = retrieval_build_filter_sql($filter);
+            $stmt = $pdo->prepare('SELECT id, embedding, vector_magnitude FROM knowledge_chunks' . $sql);
+            $stmt->execute($params);
             while ($row = $stmt->fetch()) {
                 $chunkVec = vector_unpack($row['embedding']);
                 $sim = cosine_similarity_precomputed(
@@ -102,26 +148,35 @@ function retrieval_select(
     }
 
     // Step 3: Compute Hybrid Scores
-    $ranked = [];
-    $allCandidateIds = array_unique(array_merge(array_keys($bm25Scores), array_keys($cosineScores)));
+    $strategy = $config['hybrid_strategy'] ?? 'rrf';
 
-    foreach ($allCandidateIds as $id) {
-        if (!isset($byId[$id])) {
-            continue;
+    if ($cosineScores === []) {
+        $ranked = [];
+        foreach ($bm25Scores as $id => $score) {
+            if (!isset($byId[$id])) {
+                continue;
+            }
+            $ranked[] = ['id' => $id, 'score' => $score / $maxBm25];
         }
-
-        $normCosine = $cosineScores[$id] ?? 0.0;
-        $normBm25 = isset($bm25Scores[$id]) ? ($bm25Scores[$id] / $maxBm25) : 0.0;
-
-        // Hybrid formula: 70% Cosine + 30% BM25
-        if ($cosineScores !== []) {
+    } elseif ($strategy === 'rrf') {
+        $bm25Hits = [];
+        foreach ($bm25Scores as $id => $score) {
+            $bm25Hits[] = ['id' => $id, 'score' => $score];
+        }
+        usort($bm25Hits, static fn(array $a, array $b): int => $b['score'] <=> $a['score']);
+        $ranked = retrieval_rrf_fuse($bm25Hits, $cosineScores);
+    } else {
+        $ranked = [];
+        $allCandidateIds = array_unique(array_merge(array_keys($bm25Scores), array_keys($cosineScores)));
+        foreach ($allCandidateIds as $id) {
+            if (!isset($byId[$id])) {
+                continue;
+            }
+            $normCosine = $cosineScores[$id] ?? 0.0;
+            $normBm25 = isset($bm25Scores[$id]) ? ($bm25Scores[$id] / $maxBm25) : 0.0;
             $hybridScore = (0.7 * $normCosine) + (0.3 * $normBm25);
-        } else {
-            // Fallback to pure BM25 if vector search was unavailable
-            $hybridScore = $normBm25;
+            $ranked[] = ['id' => $id, 'score' => $hybridScore];
         }
-
-        $ranked[] = ['id' => $id, 'score' => $hybridScore];
     }
 
     $ranked = retrieval_apply_priority($ranked, $byId);
@@ -244,6 +299,42 @@ function retrieval_snippet(string $content, int $limit = 140): string
         return $flat;
     }
     return rtrim(mb_substr($flat, 0, $limit, 'UTF-8')) . '…';
+}
+
+/**
+ * Build a parameterized SQL WHERE clause from a filter array.
+ * 
+ * @param array{slug:string|null,tags:list<string>|null}|null $filter The filter specification.
+ * @return array{0:string,1:list<string>} Tuple of [SQL clause (with leading space), parameter values].
+ */
+function retrieval_build_filter_sql(?array $filter): array
+{
+    if ($filter === null) {
+        return ['', []];
+    }
+
+    $conditions = [];
+    $params = [];
+
+    if (isset($filter['slug']) && $filter['slug'] !== '') {
+        $conditions[] = 'slug = ?';
+        $params[] = $filter['slug'];
+    }
+
+    if (isset($filter['tags']) && is_array($filter['tags'])) {
+        foreach ($filter['tags'] as $tag) {
+            if ($tag !== '') {
+                $conditions[] = 'tags LIKE ?';
+                $params[] = '%' . $tag . '%';
+            }
+        }
+    }
+
+    if ($conditions === []) {
+        return ['', []];
+    }
+
+    return [' WHERE ' . implode(' AND ', $conditions), $params];
 }
 
 
