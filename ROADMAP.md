@@ -2,7 +2,7 @@
 
 PocketRAG follows [Semantic Versioning](https://semver.org) and a git-flow workflow
 (`main` stable, `develop` integration, `feature/*`, `release/*`, `hotfix/*`).
-This file tracks planned work by milestone. See [issues](https://github.com/devalexanderdaza/PocketRAG/issues)
+This file tracks planned work by milestone. See [issues](../../issues)
 for the granular task lists. Suggestions are welcome via new issues.
 
 > Status legend: ✅ shipped · 🚧 in progress · 📋 planned
