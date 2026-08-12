@@ -16,6 +16,45 @@ require_once __DIR__ . '/math.php';
 require_once __DIR__ . '/embeddings.php';
 
 /**
+ * Validate an incoming sync webhook request.
+ *
+ * Supports two authentication schemes:
+ * - GitHub Actions: `X-Hub-Signature-256` header with HMAC-SHA256 of the raw body.
+ * - Bearer Token: `Authorization` header with `Bearer <secret>` format.
+ *
+ * @param array<string, mixed> $config The application config array.
+ * @param string|null $rawBody Optional raw request body. Defaults to reading from php://input.
+ * @return bool True if the request is authorized, false otherwise.
+ */
+function sync_webhook_validate(array $config, ?string $rawBody = null): bool
+{
+    $secret = (string) ($config['sync_webhook_secret'] ?? '');
+    if ($secret === '') {
+        return false;
+    }
+
+    $signatureHeader = $_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? '';
+    if ($signatureHeader !== '') {
+        $body = $rawBody ?? file_get_contents('php://input');
+        if ($body === false) {
+            return false;
+        }
+        $expected = 'sha256=' . hash_hmac('sha256', $body, $secret);
+        return hash_equals($expected, $signatureHeader);
+    }
+
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+    if ($authHeader !== '') {
+        if (str_starts_with($authHeader, 'Bearer ')) {
+            $token = substr($authHeader, 7);
+            return hash_equals($secret, $token);
+        }
+    }
+
+    return false;
+}
+
+/**
  * Synchronize knowledge markdown files to the SQLite vector database.
  * 
  * Embeds markdown content and stores it in the database.

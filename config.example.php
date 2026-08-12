@@ -55,4 +55,9 @@ return [
     // Hybrid search strategy: 'rrf' (Reciprocal Rank Fusion, robust to score scale differences)
     // or 'linear' (legacy 0.7*cosine + 0.3*BM25 blend).
     'hybrid_strategy' => 'rrf',
+
+    // Sync Webhook Secret for GitHub Actions
+    // Used by POST /?action=sync to validate incoming webhook requests.
+    // Leave empty to disable the webhook endpoint.
+    'sync_webhook_secret' => '',
 ];

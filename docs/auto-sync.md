@@ -10,6 +10,78 @@ Call site: `retrieval_select()` → `sync_knowledge_if_needed()` in `lib/sync.ph
 
 That path executes on every chat that reaches hybrid retrieval (i.e. normal `index.php` POSTs), not on a cron or webhook.
 
+## Sync Webhook (GitHub Actions)
+
+For automated deployments via GitHub Actions, PocketRAG exposes a secure webhook endpoint at `POST /?action=sync`.
+
+### Configuration
+
+Set the webhook secret in `config.php`:
+
+```php
+'sync_webhook_secret' => 'your-secret-token',
+```
+
+### GitHub Actions Example
+
+```yaml
+name: Sync Knowledge Vectors
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'data/knowledge/**'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_sqlite, sqlite3, curl, mbstring
+
+      - name: Sync knowledge vectors
+        run: |
+          php -S localhost:8080 &
+          sleep 2
+
+          SECRET="${{ secrets.POCKETRAG_WEBHOOK_SECRET }}"
+          PAYLOAD='{"action":"sync"}'
+
+          SIGNATURE=$(printf '%s' "$PAYLOAD" | openssl dgst -sha256 -hmac "$SECRET" | cut -d' ' -f2)
+
+          curl -s -X POST "http://localhost:8080/?action=sync" \
+            -H "Content-Type: application/json" \
+            -H "X-Hub-Signature-256: sha256=${SIGNATURE}" \
+            -d "$PAYLOAD"
+
+          kill %1
+        env:
+          POCKETRAG_WEBHOOK_SECRET: ${{ secrets.POCKETRAG_WEBHOOK_SECRET }}
+```
+
+### Authentication Methods
+
+The webhook supports two authentication schemes:
+
+| Method | Header | Description |
+|--------|--------|-------------|
+| HMAC-SHA256 | `X-Hub-Signature-256` | GitHub Actions format. Computes `sha256=hash_hmac('sha256', body, secret)` |
+| Bearer Token | `Authorization` | Standard Bearer token format. Sends `Authorization: Bearer <secret>` |
+
+### Security Notes
+
+- If `sync_webhook_secret` is empty, the webhook endpoint returns `401 Unauthorized`.
+- HMAC signature is validated using `hash_equals` to prevent timing attacks.
+- Bearer tokens are also compared using `hash_equals`.
+- The endpoint is mutually exclusive with the chat API — it only responds to `action=sync` query parameter.
+
 ## Freshness rule
 
 ```text

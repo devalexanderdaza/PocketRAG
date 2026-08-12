@@ -79,11 +79,9 @@ function prompt_load_persona(): array
  * Falls back to generic PocketRAG defaults if the persona file is absent.
  *
  * @param string $context The retrieved markdown context.
- * @param string $visitorType The type of visitor (reserved for future use).
- * @param string $locale The locale hint (reserved for future use).
  * @return string The formatted system prompt.
  */
-function prompt_build(string $context, string $visitorType = 'visitor', string $locale = 'en'): string
+function prompt_build(string $context): string
 {
     $persona = prompt_load_persona();
 

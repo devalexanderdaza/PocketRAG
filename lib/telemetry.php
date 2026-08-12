@@ -61,6 +61,10 @@ function telemetry_log(
             ':duration_ms'       => $durationMs,
             ':created_at'        => time(),
         ]);
+
+        if (random_int(1, 20) === 1) {
+            telemetry_prune($dbPath);
+        }
     } catch (Throwable $e) {
         error_log('telemetry_log failed: ' . $e->getMessage());
     }
@@ -71,18 +75,43 @@ function telemetry_log(
  *
  * @param string $dbPath Path to the SQLite database.
  * @param int $limit Maximum number of logs to return.
+ * @param int $since Optional unix timestamp; only return logs created at or after this time.
  * @return list<array<string,mixed>> The telemetry logs.
  */
-function telemetry_get_recent(string $dbPath, int $limit = 50): array
+function telemetry_get_recent(string $dbPath, int $limit = 50, int $since = 0): array
 {
     try {
         $pdo = db_get_pdo($dbPath);
-        $stmt = $pdo->prepare('SELECT * FROM rag_telemetry ORDER BY id DESC LIMIT :limit');
-        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        if ($since > 0) {
+            $stmt = $pdo->prepare('SELECT * FROM rag_telemetry WHERE created_at >= :since ORDER BY id DESC LIMIT :limit');
+            $stmt->bindValue(':since', $since, PDO::PARAM_INT);
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        } else {
+            $stmt = $pdo->prepare('SELECT * FROM rag_telemetry ORDER BY id DESC LIMIT :limit');
+            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        }
         $stmt->execute();
         return $stmt->fetchAll();
     } catch (Throwable $e) {
         error_log('telemetry_get_recent failed: ' . $e->getMessage());
         return [];
+    }
+}
+
+/**
+ * Prune telemetry logs older than the specified number of days.
+ *
+ * @param string $dbPath Path to the SQLite database.
+ * @param int $olderThanDays Delete logs older than this many days (default 30).
+ */
+function telemetry_prune(string $dbPath, int $olderThanDays = 30): void
+{
+    try {
+        $pdo = db_get_pdo($dbPath);
+        $cutoff = time() - ($olderThanDays * 86400);
+        $stmt = $pdo->prepare('DELETE FROM rag_telemetry WHERE created_at < :cutoff');
+        $stmt->execute([':cutoff' => $cutoff]);
+    } catch (Throwable $e) {
+        error_log('telemetry_prune failed: ' . $e->getMessage());
     }
 }
