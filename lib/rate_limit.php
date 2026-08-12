@@ -33,38 +33,45 @@ function rate_limit_init_schema(PDO $pdo): void
 /**
  * Check whether the given IP has exceeded the configured request rate.
  * 
- * Uses a sliding window: counts rows for this IP within the last `window` seconds.
- * Inserts a new hit row if the limit is not exceeded. Prunes old rows periodically.
- *
  * @param string $dbPath Absolute path to the SQLite database.
  * @param string $ip     The client IP address.
  * @return bool True if the request is within limits, false if rate-limited.
  */
 function rate_limit_check(string $dbPath, string $ip): bool
 {
-    // Stochastic pruning of old rows (~5% probability) to prevent DB bloat
-    if (rand(1, 20) === 1) {
+    try {
+        if (!(http_config()['rate_limit_enabled'] ?? false)) {
+            return true;
+        }
+
         $pdo = db_get_pdo($dbPath);
+        rate_limit_init_schema($pdo); // Ensure schema exists
+
+        // Stochastic pruning
+        if (rand(1, 20) === 1) {
+            $window = http_config()['rate_limit_window'] ?? 60;
+            $pdo->prepare("DELETE FROM rate_limit WHERE hit_at < ?")
+                ->execute([time() - $window]);
+        }
+
         $window = http_config()['rate_limit_window'] ?? 60;
-        $pdo->prepare("DELETE FROM rate_limit WHERE hit_at < ?")
-            ->execute([time() - $window]);
+        $limit = http_config()['rate_limit_rpm'] ?? 30;
+
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM rate_limit WHERE ip = ? AND hit_at > ?");
+        $stmt->execute([$ip, time() - $window]);
+        $count = (int)$stmt->fetchColumn();
+
+        if ($count >= $limit) {
+            return false;
+        }
+
+        $stmt = $pdo->prepare("INSERT INTO rate_limit (ip, hit_at) VALUES (?, ?)");
+        $stmt->execute([$ip, time()]);
+        return true;
+    } catch (Throwable $e) {
+        error_log('rate_limit_check: ' . $e->getMessage());
+        return true; // Fail open
     }
-
-    $pdo = db_get_pdo($dbPath);
-    $window = http_config()['rate_limit_window'] ?? 60;
-    $limit = http_config()['rate_limit_rpm'] ?? 30;
-
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM rate_limit WHERE ip = ? AND hit_at > ?");
-    $stmt->execute([$ip, time() - $window]);
-    $count = (int)$stmt->fetchColumn();
-
-    if ($count >= $limit) {
-        return false;
-    }
-
-    $stmt = $pdo->prepare("INSERT INTO rate_limit (ip, hit_at) VALUES (?, ?)");
-    $stmt->execute([$ip, time()]);
-    return true;
 }
 
 /**
@@ -78,17 +85,18 @@ function rate_limit_get_ip(): string
     $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
     $forwarded = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
 
-    // If forwarded header exists and the direct connection is a trusted proxy
     if ($forwarded !== '' && in_array($remoteAddr, $trustedProxies, true)) {
         $ips = array_map('trim', explode(',', $forwarded));
-        // Proxies append to the end, so rightmost is the closest proxy
-        // We traverse right-to-left to find the first untrusted IP
         for ($i = count($ips) - 1; $i >= 0; $i--) {
+            // Validate IP format
+            if (!filter_var($ips[$i], FILTER_VALIDATE_IP)) {
+                return '0.0.0.0'; // Fail on malformed IP
+            }
             if (!in_array($ips[$i], $trustedProxies, true)) {
                 return $ips[$i];
             }
         }
     }
     
-    return $remoteAddr;
+    return filter_var($remoteAddr, FILTER_VALIDATE_IP) ? $remoteAddr : '0.0.0.0';
 }
