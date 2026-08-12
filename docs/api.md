@@ -75,12 +75,109 @@ Empty message after normalization → **`400`** `{ "error": "Message is required
 | `duration_ms` | number | Wall time for the request handling path |
 | `error` | string\|null | Groq exception message if generation threw; HTTP status still `200` |
 
+## Sync Webhook Endpoint
+
+**`POST /?action=sync`**
+
+Triggers a knowledge sync (same as `php scripts/sync.php`). Requires authentication via `sync_webhook_secret` in `config.php`.
+
+### Request
+
+- **Method:** `POST`
+- **Query:** `action=sync`
+- **Headers:** `Content-Type: application/json`
+- **Body:** Any JSON (e.g., `{}` or `{"action":"sync"}`)
+
+### Authentication
+
+| Method | Header | Format |
+|--------|--------|--------|
+| HMAC-SHA256 | `X-Hub-Signature-256` | `sha256=<hmac_hex>` |
+| Bearer | `Authorization` | `Bearer <token>` |
+
+### Success Response (`200`)
+
+```json
+{
+  "ok": true,
+  "chunks": 5,
+  "skipped": 12,
+  "deleted": 1,
+  "duration_ms": 2340
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `ok` | bool | Always `true` on success |
+| `chunks` | int | Number of chunks processed/embedded |
+| `skipped` | int | Number of chunks skipped (already up-to-date) |
+| `deleted` | int | Number of orphaned chunks removed |
+| `duration_ms` | number | Wall time for the sync operation |
+
+### Error Response (`401`)
+
+```json
+{
+  "error": "Unauthorized"
+}
+```
+
+Returned when `sync_webhook_secret` is not configured or authentication headers are missing/invalid.
+
 ## Error responses
 
 | Status | Body | When |
 |---|---|---|
 | `400` | `{ "error": "Message is required" }` | No usable message |
+| `401` | `{ "error": "Unauthorized" }` | Invalid or missing webhook secret |
 | `405` | `{ "error": "Method not allowed" }` | Not POST/OPTIONS |
+
+## Telemetry Endpoint
+
+```
+GET /?action=telemetry
+```
+
+Retrieve recent telemetry logs from the RAG engine.
+
+### Query Parameters
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `limit` | int | 50 | Maximum number of logs to return |
+| `since` | int | 0 | Unix timestamp; only return logs created at or after this time (optional) |
+
+### Example Request
+
+```bash
+curl "http://localhost:8080/?action=telemetry&limit=10&since=1699900000"
+```
+
+### Success Response (`200`)
+
+```json
+{
+  "logs": [
+    {
+      "id": 42,
+      "user_query": "What is PocketRAG?",
+      "search_query": "What is PocketRAG?",
+      "mode": "hybrid",
+      "fallback_occurred": 0,
+      "fallback_reason": null,
+      "sources_count": 3,
+      "duration_ms": 1250.5,
+      "created_at": 1699900100
+    }
+  ]
+}
+```
+
+### Notes
+
+- Logs are returned in descending order by `id` (newest first).
+- Pruning is stochastic (1 in 20 chance after each `telemetry_log` call) and removes logs older than 30 days by default.
 
 ## Example (local)
 

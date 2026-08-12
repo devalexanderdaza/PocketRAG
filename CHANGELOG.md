@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-08-12
+
+### Added
+- **Telemetry read endpoint**: `GET /?action=telemetry` returns recent logs from `rag_telemetry` as JSON. Accepts `?limit=N` (default 50) and `?since=timestamp` (unix timestamp) to filter.
+- **Telemetry pruning**: `telemetry_prune($olderThanDays = 30)` deletes records older than N days. Called stochastically (~5%) on each `telemetry_log()` write to prevent unbounded table growth.
+- **Secure sync webhook**: `POST /?action=sync` triggers `sync_knowledge_run()` protected by HMAC-SHA256 (`X-Hub-Signature-256`) or Bearer token validation against `sync_webhook_secret` in config. Returns `{ok, chunks, skipped, deleted, duration_ms}`.
+- `sync_webhook_secret` config key for webhook authentication.
+
+### Changed
+- `embeddings_get` now retries on HTTP 5xx errors in addition to 429/403, rotating API keys on server-side failures.
+- `llm_complete` returns a unified `[MOCK RESPONSE]` for any provider with a placeholder API key (Groq, OpenAI, Ollama), not just Groq.
+- `prompt_build` removed dead `$visitorType` and `$locale` parameters.
+- Message content in `conversation_normalize_history` is truncated to 4000 chars to prevent oversized history payloads.
+- `index.php` returns `400` if the incoming message exceeds 4000 characters.
+
+### Fixed
+- `conversation_reformulate_query` now respects the configured LLM provider (not just Groq) for query reformulation.
+
 ## [0.3.0] — 2026-08-12
 
 ### Changed

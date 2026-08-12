@@ -34,6 +34,9 @@ function conversation_normalize_history(mixed $rawHistory): array
 
         $role = trim((string) ($msg['role'] ?? ''));
         $content = trim((string) ($msg['content'] ?? ''));
+        if (strlen($content) > 4000) {
+            $content = substr($content, 0, 4000);
+        }
 
         if (in_array($role, ['user', 'assistant'], true) && $content !== '') {
             $normalized[] = [
