@@ -29,6 +29,22 @@ There is no PHPUnit suite yet. Manual verification is required before opening a 
 | Errors | Prefer graceful degradation (BM25 fallback, mock Groq) over hard crashes on optional APIs |
 | Docs | Update the relevant file under `docs/` when behavior or contracts change |
 
+## Branching model (git-flow)
+
+The repository follows a strict git-flow convention. See [ROADMAP.md](../ROADMAP.md) for milestone planning.
+
+| Branch | Purpose | Rules |
+|---|---|---|
+| `main` | Stable / production | Only receives merges from `release/*` or `hotfix/*`. Every release merge is tagged `vX.Y.Z` ([SemVer](https://semver.org)). |
+| `develop` | Integration | Default target for feature work. Must always pass `php tests/run.php`. |
+| `feature/<slug>` | New work | Branch from `develop`, open a PR back to `develop`. One issue/epic per branch. |
+| `release/vX.Y.Z` | Release prep | Branch from `develop`, PR to `main`, tag on merge, then merge back into `develop`. |
+| `hotfix/<slug>` | Urgent production fix | Branch from `main`, PR to `main` **and** `develop`. |
+
+- Commits follow [Conventional Commits](https://www.conventionalcommits.org) (`feat:`, `fix:`, `docs:`, `test:`, `ci:`, `refactor:`, `chore:`).
+- The repository disallows merge commits on PRs; squash merge is the default.
+- Direct pushes to `main` are reserved for repository administration; regular work always goes through a PR.
+
 ## Pull requests
 
 - Prefer small, focused PRs.
