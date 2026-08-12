@@ -47,7 +47,7 @@ sequenceDiagram
 
 ### 2. Query reformulation
 
-`conversation_reformulate_query` asks Groq to produce a **standalone** search string when history exists. Failures fall back to the raw user message. The completion still uses the original `message`.
+`conversation_reformulate_query` asks the configured LLM provider to produce a **standalone** search string when history exists. Failures fall back to the raw user message. The completion still uses the original `message`.
 
 ### 3. Knowledge load (every request)
 

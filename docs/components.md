@@ -15,7 +15,7 @@ All library code lives under `lib/` as **prefixed global functions** (no namespa
 | Module | Prefix / symbols | Responsibility |
 |---|---|---|
 | `lib/http.php` | `http_` | Load config, CORS, POST gate, JSON body/response |
-| `lib/conversation.php` | `conversation_` | History sanitize (last 10 user/assistant turns); query reformulation via Groq |
+| `lib/conversation.php` | `conversation_` | History sanitize (last 10 user/assistant turns); query reformulation via configured LLM provider |
 | `lib/knowledge.php` | `knowledge_` | Frontmatter parse, body chunking with overlap, chunk load, BM25 index build |
 | `lib/bm25.php` | `bm25_` | Fold/tokenize, Okapi BM25 index + search (`k1=1.5`, `b=0.75`) |
 | `lib/synonyms.php` | `synonyms_` | ES/EN word and phrase expansion before search |
@@ -64,9 +64,9 @@ flowchart TB
     Index[index.php / sync]
   end
   Index -->|embedContent| Gemini[Google Generative Language API]
-  Index -->|chat/completions| Groq[Groq API]
+  Index -->|chat/completions| LLM[Groq / Ollama / OpenAI]
   Index --> FS[(Markdown + SQLite)]
 ```
 
 - **Gemini** — embeddings only (`gemini-embedding-001`, default 768 dims)
-- **Groq** — reformulation + final answer (default `llama-3.3-70b-versatile`)
+- **Groq / Ollama / OpenAI** — reformulation + final answer via configured LLM provider (default Groq `llama-3.3-70b-versatile`)

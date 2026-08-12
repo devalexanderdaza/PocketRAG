@@ -36,7 +36,7 @@ config.php                Local secrets (not committed)
 flowchart LR
   Client -->|POST JSON| Index[index.php]
   Index --> Reform[conversation_reformulate]
-  Reform --> GroqAPI[Groq API]
+  Reform --> LLM[Groq / Ollama / OpenAI]
   Index --> Know[knowledge_load_chunks]
   Know --> MD[data/knowledge/*.md]
   Index --> Ret[retrieval_select]
