@@ -48,4 +48,5 @@ return [
     'rate_limit_enabled' => false,
     'rate_limit_rpm'     => 30,        // max requests per IP per window
     'rate_limit_window'  => 60,        // window duration in seconds
+    'trusted_proxies'    => [],        // IPs of trusted reverse proxies
 ];
