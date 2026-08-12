@@ -75,16 +75,17 @@ it('deletes logs older than specified days', function () use ($dbPath) {
     $pdo = new PDO("sqlite:$dbPath");
     $pdo->exec('DELETE FROM rag_telemetry');
 
-    telemetry_log($dbPath, 'recent', 's', 'hybrid', false, null, 1, 10.0);
-    $pdo->exec('UPDATE rag_telemetry SET created_at = 0 WHERE user_query = "recent"');
+    // Insert a record with timestamp 0 (Jan 1 1970 — definitely older than 30 days)
+    $pdo->exec("INSERT INTO rag_telemetry (user_query, search_query, mode, fallback_occurred, fallback_reason, sources_count, duration_ms, created_at) VALUES ('old_record', 's', 'hybrid', 0, NULL, 1, 10.0, 0)");
 
-    telemetry_log($dbPath, 'old', 's', 'hybrid', false, null, 1, 10.0);
+    // Insert a record with current timestamp (recent)
+    telemetry_log($dbPath, 'recent_record', 's', 'hybrid', false, null, 1, 10.0);
 
     telemetry_prune($dbPath, 30);
 
     $logs = telemetry_get_recent($dbPath, 50);
     expect(count($logs))->toBe(1);
-    expect($logs[0]['user_query'])->toBe('old');
+    expect($logs[0]['user_query'])->toBe('recent_record');
 });
 
 it('prunes nothing when all logs are recent', function () use ($dbPath) {
@@ -100,9 +101,9 @@ it('prunes nothing when all logs are recent', function () use ($dbPath) {
     expect(count($logs))->toBe(2);
 });
 
-describe('Telemetry — stochastic pruning');
+describe('Telemetry — telemetry_prune direct call');
 
-it('telemetry_prune is called on stochastic trigger', function () {
+it('deletes old records when called directly', function () {
     $tmpDir = __DIR__ . '/tmp';
     if (!is_dir($tmpDir)) {
         mkdir($tmpDir);

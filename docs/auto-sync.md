@@ -50,15 +50,17 @@ jobs:
         run: |
           php -S localhost:8080 &
           sleep 2
-          
-          SECRET='${{ secrets.POCKETRAG_WEBHOOK_SECRET }}'
+
+          SECRET="${{ secrets.POCKETRAG_WEBHOOK_SECRET }}"
           PAYLOAD='{"action":"sync"}'
-          
+
+          SIGNATURE=$(printf '%s' "$PAYLOAD" | openssl dgst -sha256 -hmac "$SECRET" | cut -d' ' -f2)
+
           curl -s -X POST "http://localhost:8080/?action=sync" \
             -H "Content-Type: application/json" \
-            -H "X-Hub-Signature-256: sha256=$(echo -n '$PAYLOAD' | openssl dgst -sha256 -hmac '$SECRET' | cut -d' ' -f2)" \
+            -H "X-Hub-Signature-256: sha256=${SIGNATURE}" \
             -d "$PAYLOAD"
-          
+
           kill %1
         env:
           POCKETRAG_WEBHOOK_SECRET: ${{ secrets.POCKETRAG_WEBHOOK_SECRET }}

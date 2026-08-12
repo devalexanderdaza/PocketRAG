@@ -46,7 +46,18 @@ Verification today is manual (CLI sync + curl). CI only runs the **zero-deps gua
 
 ## Telemetry
 
-Rows land in `rag_telemetry` inside `data/knowledge.sqlite`. Inspect with any SQLite client, or call `telemetry_get_recent($dbPath, 50)` from a one-off PHP snippet. There is no shipped dashboard endpoint.
+Rows land in `rag_telemetry` inside `data/knowledge.sqlite`. Inspect with any SQLite client, or use the built-in endpoint:
+
+```bash
+curl "http://localhost:8080/?action=telemetry&limit=50&since=0"
+```
+
+| Parameter | Description |
+|-----------|-------------|
+| `limit` | Max records to return (default 50, max 500) |
+| `since` | Unix timestamp; only returns logs newer than this |
+
+Old records are automatically pruned (~5% of writes, deleting records older than 30 days).
 
 Useful signals:
 

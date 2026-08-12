@@ -27,8 +27,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
 
     if (($_GET['action'] ?? '') === 'telemetry') {
         $dbPath = __DIR__ . '/data/knowledge.sqlite';
-        $limit = (int) ($_GET['limit'] ?? 50);
-        $since = (int) ($_GET['since'] ?? 0);
+        $limit = max(1, min(500, (int) ($_GET['limit'] ?? 50)));
+        $since = max(0, (int) ($_GET['since'] ?? 0));
         $logs = telemetry_get_recent($dbPath, $limit, $since);
         http_send_json(200, ['logs' => $logs]);
         exit(0);
@@ -70,9 +70,12 @@ http_require_post();
 // Sync webhook endpoint for GitHub Actions
 if (($_GET['action'] ?? '') === 'sync') {
     $rawBody = file_get_contents('php://input');
+    if ($rawBody === false) {
+        http_send_json(400, ['error' => 'Unable to read request body.']);
+    }
     $config = http_config();
 
-    if (!sync_webhook_validate($config)) {
+    if (!sync_webhook_validate($config, $rawBody)) {
         http_send_json(401, ['error' => 'Unauthorized']);
     }
 
