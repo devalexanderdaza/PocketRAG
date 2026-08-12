@@ -56,9 +56,8 @@ function ollama_complete(
         CURLOPT_SSL_VERIFYHOST => 2,
     ]);
 
-    $response = curl_exec($ch);
-    $status   = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-    curl_close($ch);
+        $response = curl_exec($ch);
+        $status   = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
 
     if ($response === false || $status < 200 || $status >= 300) {
         throw new RuntimeException("Ollama API error HTTP {$status}");

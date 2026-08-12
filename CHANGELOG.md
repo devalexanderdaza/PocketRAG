@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-08-12
+
+### Changed
+- `knowledge_split_body` now respects Markdown headings (`#{1-6}`) and fenced code blocks (`` ``` ``) as split boundaries, preventing chunks from breaking structured content mid-block.
+- `chunk_min_chars` (default 320) and `chunk_max_chars` (default 900) are now configurable via `config.php` instead of hardcoded constants.
+
+### Added
+- **Reciprocal Rank Fusion (RRF)**: `retrieval_select` now uses RRF (`1/(k+rank)`, `k=60`) as the default hybrid scoring strategy, replacing the legacy linear blend (`0.7*cos + 0.3*bm25`). Set `hybrid_strategy: linear` in `config.php` to preserve the old behavior.
+- **Metadata pre-filtering**: POST body accepts an optional top-level `filter` object (`{ "slug": "string", "tags": [...] }`) to scope retrieval to specific documents or tag sets. Fully backward-compatible — absent filter scans all chunks.
+- Tests for RRF fusion logic, filter SQL construction, and structure-aware chunking.
+
+### Fixed
+- Removed deprecated `curl_close()` calls from all cURL clients (`groq`, `ollama`, `openai`, `embeddings`) — these have been no-ops since PHP 8.0 and trigger deprecation warnings in PHP 8.5.
+
 ## [0.2.0] — 2026-08-12
 
 ### Security

@@ -67,6 +67,7 @@ if (!rate_limit_check($dbPath, rate_limit_get_ip())) {
 $body = http_read_json_body();
 
 $message = trim((string) ($body['message'] ?? ''));
+$filter = $body['filter'] ?? null;
 $rawHistory = $body['messages'] ?? ($body['history'] ?? []);
 $history = conversation_normalize_history($rawHistory);
 
@@ -94,7 +95,7 @@ $chunks = knowledge_load_chunks($knowledgeDir);
 $index  = knowledge_build_index($chunks);
 
 // Run Hybrid Retrieval with (potentially reformulated) search query
-$retrieved = retrieval_select($chunks, $index, $searchQuery);
+$retrieved = retrieval_select($chunks, $index, $searchQuery, '', $filter);
 $context   = $retrieved['context'];
 $sources   = $retrieved['sources'];
 

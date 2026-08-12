@@ -66,7 +66,6 @@ function groq_complete(
 
         $response = curl_exec($ch);
         $status   = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        curl_close($ch);
 
         if ($response !== false && $status >= 200 && $status < 300) {
             break;

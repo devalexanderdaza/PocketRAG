@@ -24,7 +24,11 @@ Browsing to `index.php` via `GET` in a web browser automatically serves the buil
   "history": [
     { "role": "user", "content": "Hello!" },
     { "role": "assistant", "content": "Hi! How can I help you?" }
-  ]
+  ],
+  "filter": {
+    "slug": "optional-slug-string",
+    "tags": ["optional", "tag", "array"]
+  }
 }
 ```
 
@@ -34,6 +38,9 @@ Browsing to `index.php` via `GET` in a web browser automatically serves the buil
 | `history` | No | Prior turns. Alias: `messages`. |
 | `history[].role` | — | Only `user` and `assistant` kept |
 | `history[].content` | — | Non-empty string |
+| `filter` | No | Optional pre-filter for multi-tenancy. When absent, all chunks are searched. |
+| `filter.slug` | No | Exact match on document slug. |
+| `filter.tags` | No | Array of tags; matches chunks containing ANY of the given tags (OR logic). |
 
 Empty message after normalization → **`400`** `{ "error": "Message is required" }`.
 
