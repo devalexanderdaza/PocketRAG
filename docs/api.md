@@ -14,7 +14,7 @@ Base endpoint: **`index.php`** (repo root).
 
 ## Web UI
 
-Browsing to `/` or `index.php` via `GET` serves `public/index.html`. The page loads CSS/JS from `/assets/css/chat.css` and `/assets/js/chat.js` (files on disk under `public/assets/`). A `/public/` URL prefix is stripped so older asset links still resolve.
+Browsing to `/` or `index.php` via `GET` serves `public/index.html`. The page loads CSS/JS from `/assets/css/chat.css` and `/assets/js/chat.js` (files on disk under `public/assets/`). This requires `/assets/*` requests to be routed through `index.php` (e.g., `php -S localhost:8080 index.php` as a router, or an equivalent web server fallback); a `/public/` URL prefix is stripped so older asset links still resolve.
 
 ## Request body
 
