@@ -24,6 +24,13 @@ require_once __DIR__ . '/lib/notes.php';
 // Serve Chat UI and static assets from public/ directory on GET requests
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
     $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+    if (!is_string($uri) || $uri === '') {
+        $uri = '/';
+    }
+    // HTML used to request /public/assets/...; the document root is already public/.
+    if (str_starts_with($uri, '/public/')) {
+        $uri = substr($uri, strlen('/public'));
+    }
     $publicDir = __DIR__ . '/public';
 
     if (($_GET['action'] ?? '') === 'telemetry') {
