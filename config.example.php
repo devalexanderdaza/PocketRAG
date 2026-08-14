@@ -56,6 +56,15 @@ return [
     // or 'linear' (legacy 0.7*cosine + 0.3*BM25 blend).
     'hybrid_strategy' => 'rrf',
 
+    // Query expansion (2 LLM variants + embedding cache). Default off (extra latency).
+    'query_expansion_enabled' => false,
+
+    // Stored embedding precision: 'f32' (default) or 'int8'. Changing this requires a full re-sync.
+    'vector_precision' => 'f32',
+
+    // Append validated chat notes to data/knowledge/community_notes.md. Default off.
+    'community_notes_enabled' => false,
+
     // Sync Webhook Secret for GitHub Actions
     // Used by POST /?action=sync to validate incoming webhook requests.
     // Leave empty to disable the webhook endpoint.

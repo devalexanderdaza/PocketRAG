@@ -14,7 +14,7 @@ Schema is bootstrapped in `db_get_pdo()` (`lib/db.php`).
 | `tags` | TEXT | Normalized string |
 | `priority` | INTEGER | Default 5 |
 | `content` | TEXT | Chunk body |
-| `embedding` | BLOB | Little-endian float32 via `pack('f*')` |
+| `embedding` | BLOB | `f32` via `pack('f*')`, or int8 (`I8Q1` + scale + `pack('c*')`) when `vector_precision=int8` |
 | `vector_magnitude` | REAL | Precomputed `‖v‖` for cosine |
 | `embedding_model` | TEXT | e.g. `gemini-embedding-001` |
 | `dimensions` | INTEGER | e.g. `768` |
@@ -42,6 +42,17 @@ Index: `idx_telemetry_created` on `created_at`.
 
 Helpers: `telemetry_log`, `telemetry_get_recent` in `lib/telemetry.php` (no HTTP admin UI ships yet).
 
+## Table `query_cache`
+
+| Column | Type | Notes |
+|---|---|---|
+| `query_hash` | TEXT PK | sha256(`model|dims|text`) |
+| `embedding` | BLOB | Cached query vector (`f32`) |
+| `vector_magnitude` | REAL | Precomputed magnitude |
+| `created_at` | INTEGER | Unix time |
+
+TTL default 7 days; stochastic prune (~5% of writes).
+
 ## Vector encoding
 
 ```php
@@ -65,4 +76,8 @@ Then mapped to `[0,1]` as `(cos + 1) / 2` before hybrid mix.
 | `data/knowledge.sqlite-wal` | WAL log |
 | `data/knowledge.sqlite-shm` | Shared memory |
 
-All are gitignored. Safe to delete to force a cold re-ingest (then run `php scripts/sync.php`).
+Changing `vector_precision` from `f32` to `int8` (or back) requires a full re-embed: delete `data/knowledge.sqlite*` then `php scripts/sync.php`.
+
+Query-time cosine always runs on floats (int8 BLOBs are dequantized first). Magnitudes stored at ingest are computed from the original f32 vector.
+
+To compare Recall@1 locally after switching precision, embed a small fixture corpus twice (f32 vs int8) and check that the top neighbor for a held-out query is unchanged (see `tests/math_test.php`).

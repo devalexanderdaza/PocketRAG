@@ -58,9 +58,9 @@ sequenceDiagram
 1. Expand query with `synonyms_expand`.
 2. Run BM25; keep positive scores; normalize by max BM25.
 3. Freshness auto-sync if any Markdown `mtime` > DB `mtime`.
-4. Embed expanded query (2s timeout, key rotation on 429/403).
-5. For each stored chunk, cosine similarity with precomputed magnitudes; map to `[0,1]`.
-6. Hybrid score `0.7 * cos + 0.3 * bm25`, or BM25-only if no cosine scores.
+4. Embed expanded query (2s timeout, key rotation on 429/403; SQLite `query_cache` first). Optional 2 query variants when `query_expansion_enabled` (RRF-merge cosine maps).
+5. For each stored chunk, cosine similarity with precomputed magnitudes; map to `[0,1]`. Int8 BLOBs are dequantized first.
+6. Hybrid score via RRF (default) or `0.7 * cos + 0.3 * bm25`; BM25-only if no cosine scores.
 7. Priority boost: `score *= 1 + (priority - 5) * 0.05` (default priority `5`).
 8. Take top **4** chunks for context. Citations: unique slugs, score ≥ `0.35 * topScore`, max **3**.
 9. If nothing ranked, default to chunks with slug `profile` or `cv`, else first chunk.

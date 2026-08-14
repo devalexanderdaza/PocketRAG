@@ -362,6 +362,11 @@ body {
     font-weight: 600;
 }
 
+.source-ref {
+    color: var(--text-muted);
+    font-size: 0.85em;
+}
+
 /* Chat Input Bar */
 .chat-input-area {
     padding: 20px 24px;

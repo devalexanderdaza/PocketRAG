@@ -69,6 +69,14 @@ function db_get_pdo(string $dbPath): PDO
             created_at INTEGER NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_telemetry_created ON rag_telemetry(created_at);
+
+        CREATE TABLE IF NOT EXISTS query_cache (
+            query_hash TEXT PRIMARY KEY,
+            embedding BLOB NOT NULL,
+            vector_magnitude REAL NOT NULL,
+            created_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_query_cache_created ON query_cache(created_at);
     ");
 
     // Migration: Ensure content_hash column exists on legacy databases

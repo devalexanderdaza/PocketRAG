@@ -19,6 +19,7 @@ require_once __DIR__ . '/lib/conversation.php';
 require_once __DIR__ . '/lib/telemetry.php';
 require_once __DIR__ . '/lib/rate_limit.php';
 require_once __DIR__ . '/lib/sync.php';
+require_once __DIR__ . '/lib/notes.php';
 
 // Serve Chat UI and static assets from public/ directory on GET requests
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
@@ -144,7 +145,7 @@ $context   = $retrieved['context'];
 $sources   = $retrieved['sources'];
 
 // Build System Prompt
-$systemPrompt = prompt_build($context);
+$systemPrompt = prompt_build($context, $config);
 
 // Assemble LLM completion messages (system prompt + history + current user message)
 $llmMessages = [
@@ -165,6 +166,17 @@ try {
 } catch (Exception $e) {
     $error = $e->getMessage();
     $reply = 'An error occurred while processing the request.';
+}
+
+if ($error === null && (bool) ($config['community_notes_enabled'] ?? false)) {
+    $extracted = notes_extract($reply);
+    $reply = $extracted['reply'];
+    if ($extracted['note'] !== null) {
+        $valid = notes_validate($extracted['note']);
+        if ($valid !== null) {
+            notes_append(__DIR__ . '/data/knowledge/community_notes.md', $valid);
+        }
+    }
 }
 
 $durationMs = round((microtime(true) - $startTime) * 1000, 2);

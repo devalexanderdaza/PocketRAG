@@ -14,6 +14,7 @@ require_once __DIR__ . '/knowledge.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/math.php';
 require_once __DIR__ . '/embeddings.php';
+require_once __DIR__ . '/http.php';
 
 /**
  * Validate an incoming sync webhook request.
@@ -170,7 +171,7 @@ function sync_knowledge_run(
             $chunk     = $item['chunk'];
             $vector    = $item['vector'];
             $magnitude = vector_magnitude($vector);
-            $blob      = vector_pack($vector);
+            $blob      = vector_pack_stored($vector, (string) (http_config()['vector_precision'] ?? 'f32'));
 
             $insertStmt->execute([
                 ':id'               => $chunk['id'],

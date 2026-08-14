@@ -31,7 +31,11 @@ Both `index.php` and sync/retrieval fall back to `config.example.php` if `config
 | `openai_model` | string | `gpt-4o-mini` | OpenAI model id |
 | `gemini_api_keys` | string[] | pool of keys | Embeddings; rotate on HTTP 429/403 |
 | `gemini_model` | string | `gemini-embedding-001` | Embedding model |
-| `gemini_dimensions` | int | `768` | `outputDimensionality` on embed requests |
+| `hybrid_strategy` | string | `rrf` | `rrf` or `linear` hybrid blend |
+| `query_expansion_enabled` | bool | `false` | Extra LLM variants (2) fused into cosine via RRF |
+| `vector_precision` | string | `f32` | `f32` or `int8` stored embeddings (`float16` not implemented) |
+| `community_notes_enabled` | bool | `false` | Append validated chat notes to `community_notes.md` |
+| `sync_webhook_secret` | string | `''` | HMAC/Bearer secret for `POST /?action=sync` |
 
 ## Runtime requirements
 

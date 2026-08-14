@@ -51,3 +51,7 @@ The most robust way to secure your data is to move it out of the public web root
 
 1. Move the `data` directory and `config.php` to a parent folder not served by your web server (e.g., `/var/www/private/`).
 2. Update `lib/http.php` and `index.php` to reference the new paths.
+
+## Community notes
+
+`community_notes_enabled` writes to `data/knowledge/community_notes.md` from the public chat API. There is no user auth. Leave the flag `false` unless every caller is trusted. Notes are validated (type, length, no HTML/frontmatter) but remain an injection surface for knowledge content.
