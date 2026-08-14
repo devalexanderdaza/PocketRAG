@@ -55,7 +55,10 @@ Empty message after normalization → **`400`** `{ "error": "Message is required
       "id": "base",
       "label": "PocketRAG Base Knowledge System",
       "snippet": "PocketRAG (PHP Proof of Concept…",
-      "score": 0.895
+      "score": 0.895,
+      "file": "base.md",
+      "heading": "Architecture",
+      "line": 14
     }
   ],
   "mode": "hybrid",
@@ -69,7 +72,7 @@ Empty message after normalization → **`400`** `{ "error": "Message is required
 |---|---|---|
 | `reply` | string | Model answer, mock text, or generic error string |
 | `search_query` | string | Query used for retrieval (may be reformulated) |
-| `sources` | array | Up to 3 citation objects (`id` = document slug) |
+| `sources` | array | Up to 3 citation objects (`id` = document slug; also `file`, `heading`, `line`) |
 | `mode` | string | `hybrid` \| `bm25_fallback` |
 | `fallback_occurred` | bool | True when vector path contributed no scores |
 | `duration_ms` | number | Wall time for the request handling path |
@@ -207,6 +210,6 @@ curl -s http://localhost:8080/index.php \
 
 ## Client expectations
 
-- Treat `sources` as UI citations, not as a guarantee that every context chunk is listed.
+- Treat `sources` as UI citations, not as a guarantee that every context chunk is listed. Each source may include `file` (markdown basename), `heading` (nearest `#` title, or `null`), and `line` (1-indexed start in the body after frontmatter).
 - Prefer `search_query` when debugging retrieval mismatches vs the user-visible `message`.
 - Mock mode (placeholder Groq key) still returns retrieval metadata so you can validate search without LLM spend.

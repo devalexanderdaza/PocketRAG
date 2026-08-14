@@ -128,7 +128,10 @@ The main endpoint is `index.php`. It accepts `POST` JSON requests:
       "id": "base-architecture",
       "label": "System Architecture",
       "snippet": "PocketRAG solves the problem of...",
-      "score": 0.895
+      "score": 0.895,
+      "file": "base.md",
+      "heading": "Architecture",
+      "line": 14
     }
   ],
   "mode": "hybrid",

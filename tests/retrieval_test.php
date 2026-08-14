@@ -141,3 +141,43 @@ it('uses custom k constant when provided', function () {
     expect($scoreA30 !== null)->toBeTrue();
     expect($scoreA60 !== $scoreA30)->toBeTrue();
 });
+
+it('merges two cosine maps with RRF', function () {
+    $merged = retrieval_rrf_merge_maps([
+        ['a' => 0.9, 'b' => 0.1],
+        ['b' => 0.95, 'c' => 0.8],
+    ]);
+    expect(isset($merged['a']))->toBeTrue();
+    expect(isset($merged['b']))->toBeTrue();
+    expect(isset($merged['c']))->toBeTrue();
+});
+
+
+describe('Retrieval — sources citation shape');
+it('includes file, heading and line on BM25-fallback sources', function () {
+    $chunks = [
+        [
+            'id'       => 'cite#0',
+            'slug'     => 'cite',
+            'title'    => 'Citation Doc',
+            'tags'     => 'docs',
+            'content'  => 'PocketRAG hybrid search uses BM25 and cosine similarity together.',
+            'priority' => 5,
+            'file'     => 'cite.md',
+            'heading'  => 'Hybrid search',
+            'line'     => 12,
+        ],
+    ];
+    $index = knowledge_build_index($chunks);
+    $result = retrieval_select($chunks, $index, 'hybrid search BM25 cosine');
+    expect(count($result['sources']))->toBeGreaterThan(0);
+    $src = $result['sources'][0];
+    expect($src['file'])->toBe('cite.md');
+    expect($src['heading'])->toBe('Hybrid search');
+    expect($src['line'])->toBe(12);
+    expect(isset($src['id']))->toBeTrue();
+    expect(isset($src['label']))->toBeTrue();
+    expect(isset($src['snippet']))->toBeTrue();
+    expect(isset($src['score']))->toBeTrue();
+});
+

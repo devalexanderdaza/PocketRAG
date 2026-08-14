@@ -41,12 +41,12 @@ message length validation).
 
 Tagged: `v0.4.0`.
 
-## v0.5.0 — Advanced RAG 📋
+## v0.5.0 — Advanced RAG ✅
 
-- Source citations with file/heading/line traceability (API + UI).
-- Multi-query / HyDE expansion with query-embedding cache.
-- Vector quantization (Int8/Float16) to shrink SQLite BLOBs.
-- Conversation-driven self-learning into `community_notes`.
+Shipped: source citations with file/heading/line; query embedding cache; optional 2-variant
+query expansion (RRF-fused); optional int8 vector storage; gated community notes.
+
+Tagged: `v0.5.0`.
 
 ## Non-Goals
 

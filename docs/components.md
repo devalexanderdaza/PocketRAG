@@ -21,8 +21,10 @@ All library code lives under `lib/` as **prefixed global functions** (no namespa
 | `lib/synonyms.php` | `synonyms_` | ES/EN word and phrase expansion before search |
 | `lib/retrieval.php` | `retrieval_` | Hybrid orchestration, priority boost, citations, fallbacks |
 | `lib/sync.php` | `sync_` | Shared ingest with `content_hash` diff + mtime freshness auto-sync |
-| `lib/embeddings.php` | `embeddings_` | Gemini `embedContent` client with key rotation |
-| `lib/math.php` | `vector_`, `cosine_` | `pack('f*')` / unpack, magnitude, cosine |
+| `lib/embeddings.php` | `embeddings_` | Gemini `embedContent` client with key rotation and query_cache |
+| `lib/query.php` | `query_expansion_` | Optional 2-variant query expansion via `llm_complete` |
+| `lib/notes.php` | `notes_` | Parse/validate/append community notes |
+| `lib/math.php` | `vector_`, `cosine_` | `pack('f*')` / int8 quantize, magnitude, cosine |
 | `lib/db.php` | `db_` | PDO SQLite, WAL pragmas, schema bootstrap & migration |
 | `lib/prompt.php` | `prompt_` | System prompt with retrieved context |
 | `lib/llm.php` | `llm_` | Provider dispatcher (`groq`, `ollama`, `openai`) |

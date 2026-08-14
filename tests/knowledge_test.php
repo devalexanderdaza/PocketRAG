@@ -41,6 +41,8 @@ describe('Knowledge — knowledge_split_body');
 it('returns a single chunk for short content', function () {
     $chunks = knowledge_split_body('Short paragraph.');
     expect(count($chunks))->toBeGreaterThan(0);
+    expect($chunks[0]['content'])->toBe('Short paragraph.');
+    expect($chunks[0]['line'])->toBe(1);
 });
 
 it('splits long content into multiple chunks', function () {
@@ -55,8 +57,8 @@ it('no chunk exceeds configured max_chars significantly', function () {
     $p2     = str_repeat('alpha beta gamma delta. ', 30);
     $chunks = knowledge_split_body($p1 . "\n\n" . $p2, 0, 320, 900);
     foreach ($chunks as $chunk) {
-        if (strlen($chunk) > 900 * 2) {
-            throw new AssertionError('Chunk too large: ' . strlen($chunk));
+        if (strlen($chunk['content']) > 900 * 2) {
+            throw new AssertionError('Chunk too large: ' . strlen($chunk['content']));
         }
     }
 });
@@ -66,7 +68,7 @@ it('prefixes overlap marker on subsequent chunks when overlap > 0', function () 
     $p2     = str_repeat('second ', 50);
     $chunks = knowledge_split_body($p1 . "\n\n" . $p2, 50);
     if (count($chunks) > 1) {
-        expect($chunks[1])->toContain('[...]');
+        expect($chunks[1]['content'])->toContain('[...]');
     }
 });
 
@@ -86,11 +88,11 @@ function hello() {
 More text here.
 MD;
     $chunks = knowledge_split_body($body, 0);
-    $codeChunks = array_filter($chunks, fn($c) => str_contains($c, '```'));
+    $codeChunks = array_filter($chunks, fn($c) => str_contains($c['content'], '```'));
     expect(count($codeChunks))->toBeGreaterThan(0);
     foreach ($codeChunks as $chunk) {
-        if (str_contains($chunk, '```')) {
-            expect(substr_count($chunk, '```'))->toBe(2);
+        if (str_contains($chunk['content'], '```')) {
+            expect(substr_count($chunk['content'], '```'))->toBe(2);
         }
     }
 });
@@ -121,9 +123,32 @@ $p4
 MD;
     $chunks = knowledge_split_body($body, 0, 320, 600);
     expect(count($chunks))->toBeGreaterThan(1);
-    $chunk0 = $chunks[0];
+    $chunk0 = $chunks[0]['content'];
     expect(str_contains($chunk0, '## Section One'))->toBeTrue();
     expect(str_contains($chunk0, '## Section Two'))->toBeFalse();
+});
+
+it('records nearest heading and 1-indexed line for structured chunks', function () {
+    $body = <<<'MD'
+# Intro
+
+Lead paragraph here.
+
+## Details
+
+Body of details section.
+MD;
+    $chunks = knowledge_split_body($body, 0, 10, 900);
+    $details = null;
+    foreach ($chunks as $chunk) {
+        if (str_contains($chunk['content'], 'Body of details')) {
+            $details = $chunk;
+            break;
+        }
+    }
+    expect($details !== null)->toBeTrue();
+    expect($details['heading'])->toBe('Details');
+    expect($details['line'])->toBeGreaterThan(1);
 });
 
 it('splits respects runtime min/max config via override params', function () {
@@ -134,8 +159,8 @@ it('splits respects runtime min/max config via override params', function () {
     $chunks = knowledge_split_body($body, 0, 100, 300);
     expect(count($chunks))->toBeGreaterThan(1);
     foreach ($chunks as $chunk) {
-        if (strlen($chunk) > 300) {
-            throw new AssertionError('Chunk exceeds max: ' . strlen($chunk));
+        if (strlen($chunk['content']) > 300) {
+            throw new AssertionError('Chunk exceeds max: ' . strlen($chunk['content']));
         }
     }
 });

@@ -65,6 +65,14 @@ Useful signals:
 - High `duration_ms` → auto-sync on request, Groq latency, or cold embed
 - `search_query` ≠ `user_query` → reformulation active
 
+## Vector precision
+
+`vector_precision` (`f32` default, `int8` optional) is applied at ingest. After changing it, delete `data/knowledge.sqlite*` and re-run `php scripts/sync.php`. Int8 is not converted in place. `float16` is not implemented in v0.5.0.
+
+## Community notes
+
+When `community_notes_enabled` is true, the model may emit a `<!--NOTE-->…<!--/NOTE-->` JSON block. PocketRAG validates it and appends to `data/knowledge/community_notes.md` (gitignored). This is **not authentication** — any client can try to inject notes if the flag is on. Keep it off unless you trust callers.
+
 ## Logs
 
 Failures in embeddings, sync, reformulation, and telemetry use `error_log`. On shared hosts, check the PHP error log path configured by the provider.

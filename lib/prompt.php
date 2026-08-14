@@ -79,13 +79,22 @@ function prompt_load_persona(): array
  * Falls back to generic PocketRAG defaults if the persona file is absent.
  *
  * @param string $context The retrieved markdown context.
+ * @param array<string, mixed>|null $config Optional config; notes instruction added when enabled.
  * @return string The formatted system prompt.
  */
-function prompt_build(string $context): string
+function prompt_build(string $context, ?array $config = null): string
 {
     $persona = prompt_load_persona();
+    $notesHint = '';
+    $cfg = $config ?? (function_exists('http_config') ? http_config() : []);
+    if ((bool) ($cfg['community_notes_enabled'] ?? false)) {
+        $notesHint = "\nIf the user clearly states a lasting correction or new fact, append exactly one "
+            . "<!--NOTE-->{\"type\":\"correction\"|\"fact\",\"text\":\"...\"}<!--/NOTE--> block after the answer. "
+            . "Otherwise omit it.\n";
+    }
 
     return "You are {$persona['name']}. {$persona['description']}\n\n"
-        . "{$persona['rules']}\n\n"
-        . "RETRIEVED CONTEXT:\n" . $context;
+        . "{$persona['rules']}\n"
+        . $notesHint
+        . "\nRETRIEVED CONTEXT:\n" . $context;
 }

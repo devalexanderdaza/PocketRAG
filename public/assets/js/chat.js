@@ -138,7 +138,14 @@ document.addEventListener('DOMContentLoaded', () => {
             sources.forEach(src => {
                 const chip = document.createElement('div');
                 chip.className = 'source-chip';
-                chip.innerHTML = `📄 <strong>${escapeHtml(src.id)}</strong> <span class="source-score">${src.score ? src.score.toFixed(3) : ''}</span>`;
+                const loc = [];
+                if (src.file) loc.push(src.file);
+                if (src.heading) loc.push(src.heading);
+                const linePart = src.line ? `L${src.line}` : '';
+                const ref = loc.length ? loc.join(' › ') + (linePart ? ` (${linePart})` : '') : '';
+                chip.innerHTML = `📄 <strong>${escapeHtml(src.id)}</strong>`
+                    + (ref ? ` <span class="source-ref">${escapeHtml(ref)}</span>` : '')
+                    + ` <span class="source-score">${src.score ? src.score.toFixed(3) : ''}</span>`;
                 content.appendChild(chip);
             });
 

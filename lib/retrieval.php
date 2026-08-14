@@ -16,6 +16,7 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/math.php';
 require_once __DIR__ . '/embeddings.php';
 require_once __DIR__ . '/sync.php';
+require_once __DIR__ . '/query.php';
 
 const RETRIEVAL_TOP_K = 4;
 const RETRIEVAL_CITATION_RATIO = 0.35;
@@ -64,17 +65,38 @@ function retrieval_rrf_fuse(array $bm25Hits, array $cosineScores, int $k = RETRI
 }
 
 /**
+ * Merge several cosine score maps with Reciprocal Rank Fusion.
+ *
+ * @param list<array<string,float>> $maps Per-query id => score maps.
+ * @param int $k RRF k constant.
+ * @return array<string,float> Fused scores keyed by chunk id.
+ */
+function retrieval_rrf_merge_maps(array $maps, int $k = RETRIEVAL_RRF_K): array
+{
+    $rrfScores = [];
+    foreach ($maps as $map) {
+        arsort($map);
+        $rank = 1;
+        foreach ($map as $id => $score) {
+            $rrfScores[$id] = ($rrfScores[$id] ?? 0.0) + (1.0 / ($k + $rank));
+            $rank++;
+        }
+    }
+    return $rrfScores;
+}
+
+/**
  * Select top K context chunks using Hybrid Search (Cosine + BM25).
  * 
  * Computes individual BM25 and Cosine similarity scores, normalizes them,
  * and combines them into a hybrid score. Fallbacks to pure BM25 on API failure.
  *
- * @param list<array{id:string,slug:string,title:string,tags:string,content:string,priority:int}> $chunks Array of all knowledge chunks.
+ * @param list<array{id:string,slug:string,title:string,tags:string,content:string,priority:int,file?:string,heading?:?string,line?:int}> $chunks Array of all knowledge chunks.
  * @param array{docs:list<array{id:string,len:int,freqs:array<string,int>}>,df:array<string,int>,avgdl:float,n:int} $index Precomputed BM25 index.
  * @param string $message The standalone query to search for.
  * @param string $flowId Optional conversational flow ID.
  * @param array{slug:string|null,tags:list<string>|null}|null $filter Optional pre-filter for multi-tenancy (slug = exact match, tags = OR logic for LIKE matches).
- * @return array{context:string,sources:list<array{id:string,label:string,snippet:string,score:float}>,mode:string,fallback_occurred:bool,fallback_reason:string|null} Retrieval results.
+ * @return array{context:string,sources:list<array{id:string,label:string,snippet:string,score:float,file:?string,heading:?string,line:?int}>,mode:string,fallback_occurred:bool,fallback_reason:string|null} Retrieval results.
  */
 function retrieval_select(
     array $chunks,
@@ -120,27 +142,56 @@ function retrieval_select(
     }
 
     $queryVector = embeddings_get($expandedQuery, $apiKeys, $model, $dimensions);
+    $cosineMaps = [];
+
+    $scoreCosineAgainstDb = static function (?array $queryVector, PDO $pdo, float $queryMag, string $sql, array $params): array {
+        if ($queryVector === null) {
+            return [];
+        }
+        $cosineScores = [];
+        $stmt = $pdo->prepare('SELECT id, embedding, vector_magnitude FROM knowledge_chunks' . $sql);
+        $stmt->execute($params);
+        while ($row = $stmt->fetch()) {
+            $chunkVec = vector_unpack_stored((string) $row['embedding']);
+            $sim = cosine_similarity_precomputed(
+                $queryVector,
+                $queryMag,
+                $chunkVec,
+                (float) $row['vector_magnitude']
+            );
+            $cosineScores[$row['id']] = ($sim + 1.0) / 2.0;
+        }
+        return $cosineScores;
+    };
+
     $cosineScores = [];
 
     if ($queryVector !== null && is_file($dbPath)) {
         try {
             $pdo = db_get_pdo($dbPath);
             $queryMag = vector_magnitude($queryVector);
-
             [$sql, $params] = retrieval_build_filter_sql($filter);
-            $stmt = $pdo->prepare('SELECT id, embedding, vector_magnitude FROM knowledge_chunks' . $sql);
-            $stmt->execute($params);
-            while ($row = $stmt->fetch()) {
-                $chunkVec = vector_unpack($row['embedding']);
-                $sim = cosine_similarity_precomputed(
-                    $queryVector,
-                    $queryMag,
-                    $chunkVec,
-                    (float) $row['vector_magnitude']
-                );
+            $cosineMaps[] = $scoreCosineAgainstDb($queryVector, $pdo, $queryMag, $sql, $params);
 
-                // Normalise Cosine Score from [-1, 1] to [0, 1]
-                $cosineScores[$row['id']] = ($sim + 1.0) / 2.0;
+            $variants = query_expansion_variants($expandedQuery, $config);
+            foreach ($variants as $variant) {
+                $variantVector = embeddings_get($variant, $apiKeys, $model, $dimensions);
+                if ($variantVector === null) {
+                    continue;
+                }
+                $cosineMaps[] = $scoreCosineAgainstDb(
+                    $variantVector,
+                    $pdo,
+                    vector_magnitude($variantVector),
+                    $sql,
+                    $params
+                );
+            }
+
+            if (count($cosineMaps) === 1) {
+                $cosineScores = $cosineMaps[0];
+            } elseif (count($cosineMaps) > 1) {
+                $cosineScores = retrieval_rrf_merge_maps($cosineMaps);
             }
         } catch (Exception $e) {
             error_log('retrieval_select: Vector DB read error: ' . $e->getMessage());
@@ -214,6 +265,9 @@ function retrieval_select(
             'label'   => $chunk['title'],
             'snippet' => retrieval_snippet($chunk['content']),
             'score'   => round($hit['score'], 3),
+            'file'    => isset($chunk['file']) ? (string) $chunk['file'] : null,
+            'heading' => $chunk['heading'] ?? null,
+            'line'    => isset($chunk['line']) ? (int) $chunk['line'] : null,
         ];
     }
 

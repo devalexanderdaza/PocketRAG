@@ -12,6 +12,20 @@ declare(strict_types=1);
 require_once __DIR__ . '/bm25.php';
 
 /**
+ * @param array{content:string,heading:?string,line:int} $left
+ * @param array{content:string,heading:?string,line:int} $right
+ * @return array{content:string,heading:?string,line:int}
+ */
+function knowledge_merge_segments(array $left, array $right): array
+{
+    return [
+        'content' => $left['content'] . "\n\n" . $right['content'],
+        'heading' => $left['heading'],
+        'line'    => $left['line'],
+    ];
+}
+
+/**
  * Split markdown body into optimized chunks with optional overlap.
  *
  * Respects heading hierarchy, paragraph boundaries, fenced code blocks,
@@ -21,7 +35,7 @@ require_once __DIR__ . '/bm25.php';
  * @param int $overlapChars Characters of context overlap between chunks.
  * @param int|null $minChars Override minimum chunk size (uses config if null).
  * @param int|null $maxChars Override maximum chunk size (uses config if null).
- * @return list<string> Array of text chunks.
+ * @return list<array{content:string,heading:?string,line:int}> Chunks with origin metadata.
  */
 function knowledge_split_body(string $body, int $overlapChars = 150, ?int $minChars = null, ?int $maxChars = null): array
 {
@@ -33,38 +47,50 @@ function knowledge_split_body(string $body, int $overlapChars = 150, ?int $minCh
     $chunks = [];
     foreach ($segments as $segment) {
         $lastIndex = count($chunks) - 1;
-        if ($lastIndex >= 0 && strlen($chunks[$lastIndex]) < $minChars && strlen($chunks[$lastIndex]) + strlen($segment) <= $maxChars) {
-            $chunks[$lastIndex] .= "\n\n" . $segment;
+        if (
+            $lastIndex >= 0
+            && strlen($chunks[$lastIndex]['content']) < $minChars
+            && strlen($chunks[$lastIndex]['content']) + strlen($segment['content']) <= $maxChars
+        ) {
+            $chunks[$lastIndex] = knowledge_merge_segments($chunks[$lastIndex], $segment);
             continue;
         }
         $chunks[] = $segment;
     }
 
     $count = count($chunks);
-    if ($count > 1 && strlen($chunks[$count - 1]) < $minChars) {
-        $candidate = $chunks[$count - 2] . "\n\n" . $chunks[$count - 1];
-        if (strlen($candidate) <= $maxChars) {
-            array_splice($chunks, $count - 2, 2, [$candidate]);
+    if ($count > 1 && strlen($chunks[$count - 1]['content']) < $minChars) {
+        $merged = knowledge_merge_segments($chunks[$count - 2], $chunks[$count - 1]);
+        if (strlen($merged['content']) <= $maxChars) {
+            array_splice($chunks, $count - 2, 2, [$merged]);
         }
     }
 
     $bounded = [];
     foreach ($chunks as $chunk) {
-        if (strlen($chunk) <= $maxChars) {
+        if (strlen($chunk['content']) <= $maxChars) {
             $bounded[] = $chunk;
             continue;
         }
-        $sentences = preg_split('/(?<=[.!?])\s+/', $chunk) ?: [$chunk];
+        $sentences = preg_split('/(?<=[.!?])\s+/', $chunk['content']) ?: [$chunk['content']];
         $buffer    = '';
         foreach ($sentences as $sentence) {
             if ($buffer !== '' && strlen($buffer) + strlen($sentence) + 1 > $maxChars) {
-                $bounded[] = trim($buffer);
-                $buffer    = '';
+                $bounded[] = [
+                    'content' => trim($buffer),
+                    'heading' => $chunk['heading'],
+                    'line'    => $chunk['line'],
+                ];
+                $buffer = '';
             }
             $buffer = $buffer === '' ? $sentence : $buffer . ' ' . $sentence;
         }
         if (trim($buffer) !== '') {
-            $bounded[] = trim($buffer);
+            $bounded[] = [
+                'content' => trim($buffer),
+                'heading' => $chunk['heading'],
+                'line'    => $chunk['line'],
+            ];
         }
     }
 
@@ -72,13 +98,18 @@ function knowledge_split_body(string $body, int $overlapChars = 150, ?int $minCh
         $overlapped = [$bounded[0]];
         $totalBounded = count($bounded);
         for ($i = 1; $i < $totalBounded; $i++) {
-            $prev = $bounded[$i - 1];
+            $prev = $bounded[$i - 1]['content'];
             $prefix = mb_strlen($prev, 'UTF-8') > $overlapChars ? mb_substr($prev, -$overlapChars, null, 'UTF-8') : $prev;
             $spacePos = mb_strpos($prefix, ' ', 0, 'UTF-8');
             if ($spacePos !== false && $spacePos < 30) {
                 $prefix = mb_substr($prefix, $spacePos + 1, null, 'UTF-8');
             }
-            $overlapped[] = '[...] ' . trim($prefix) . "\n\n" . $bounded[$i];
+            $next = $bounded[$i];
+            $overlapped[] = [
+                'content' => '[...] ' . trim($prefix) . "\n\n" . $next['content'],
+                'heading' => $next['heading'],
+                'line'    => $next['line'],
+            ];
         }
         return $overlapped;
     }
@@ -90,7 +121,7 @@ function knowledge_split_body(string $body, int $overlapChars = 150, ?int $minCh
  * Split markdown body by structural boundaries (headings, fenced code blocks).
  *
  * @param string $body The markdown body.
- * @return list<string> Raw segments divided at structural boundaries.
+ * @return list<array{content:string,heading:?string,line:int}> Raw segments with origin metadata.
  */
 function knowledge_split_by_structure(string $body): array
 {
@@ -99,32 +130,51 @@ function knowledge_split_by_structure(string $body): array
     $current = [];
     $inCodeBlock = false;
     $headingStack = [];
+    $segmentStartLine = 1;
 
-    foreach ($lines as $line) {
+    $currentHeading = static function (array $stack): ?string {
+        if ($stack === []) {
+            return null;
+        }
+        return $stack[count($stack) - 1]['title'];
+    };
+
+    $flush = static function () use (&$segments, &$current, &$headingStack, &$segmentStartLine, $currentHeading): void {
+        $segment = trim(implode("\n", $current));
+        $current = [];
+        if ($segment === '') {
+            return;
+        }
+        $segments[] = [
+            'content' => $segment,
+            'heading' => $currentHeading($headingStack),
+            'line'    => $segmentStartLine,
+        ];
+    };
+
+    foreach ($lines as $idx => $line) {
+        $lineNum = $idx + 1;
+
         if (preg_match('/^```/', $line)) {
             if (!$inCodeBlock) {
-                if (!empty($current)) {
-                    $segment = trim(implode("\n", $current));
-                    if ($segment !== '') {
-                        $segments[] = $segment;
-                    }
-                    $current = [];
+                if ($current !== []) {
+                    $flush();
                 }
                 $inCodeBlock = true;
+                $segmentStartLine = $lineNum;
                 $current[] = $line;
             } else {
                 $current[] = $line;
-                $segment = trim(implode("\n", $current));
-                if ($segment !== '') {
-                    $segments[] = $segment;
-                }
-                $current = [];
+                $flush();
                 $inCodeBlock = false;
             }
             continue;
         }
 
         if ($inCodeBlock) {
+            if ($current === []) {
+                $segmentStartLine = $lineNum;
+            }
             $current[] = $line;
             continue;
         }
@@ -132,59 +182,55 @@ function knowledge_split_by_structure(string $body): array
         if (preg_match('/^(#{1,6})\s+(.+)$/', $line, $hm)) {
             $level = strlen($hm[1]);
 
-            if (!empty($current)) {
-                $segment = trim(implode("\n", $current));
-                if ($segment !== '') {
-                    $segments[] = $segment;
-                }
-                $current = [];
+            if ($current !== []) {
+                $flush();
             }
 
-            while (count($headingStack) > 0 && $headingStack[count($headingStack) - 1] >= $level) {
+            while (count($headingStack) > 0 && $headingStack[count($headingStack) - 1]['level'] >= $level) {
                 array_pop($headingStack);
             }
-            $headingStack[] = $level;
+            $headingStack[] = ['level' => $level, 'title' => trim($hm[2])];
 
+            $segmentStartLine = $lineNum;
             $current[] = $line;
             continue;
         }
 
         if (trim($line) === '') {
-            if (!empty($current)) {
-                $segment = trim(implode("\n", $current));
-                if ($segment !== '') {
-                    $segments[] = $segment;
-                }
-                $current = [];
+            if ($current !== []) {
+                $flush();
             }
             continue;
+        }
+
+        if ($current === []) {
+            $segmentStartLine = $lineNum;
         }
         $current[] = $line;
     }
 
-    if (!empty($current)) {
-        $segment = trim(implode("\n", $current));
-        if ($segment !== '') {
-            $segments[] = $segment;
-        }
+    if ($current !== []) {
+        $flush();
     }
 
     $merged = [];
-    $carry  = '';
+    $carry  = null;
     foreach ($segments as $segment) {
-        $isBareLabel = !str_contains($segment, "\n") && substr($segment, -1) === ':' && mb_strlen($segment) < 60;
+        $isBareLabel = !str_contains($segment['content'], "\n")
+            && substr($segment['content'], -1) === ':'
+            && mb_strlen($segment['content']) < 60;
         if ($isBareLabel) {
-            $carry = $carry === '' ? $segment : $carry . "\n" . $segment;
+            $carry = $carry === null ? $segment : knowledge_merge_segments($carry, $segment);
             continue;
         }
-        $merged[] = $carry === '' ? $segment : $carry . "\n" . $segment;
-        $carry    = '';
+        $merged[] = $carry === null ? $segment : knowledge_merge_segments($carry, $segment);
+        $carry    = null;
     }
-    if ($carry !== '') {
+    if ($carry !== null) {
         $merged[] = $carry;
     }
 
-    return array_values(array_filter($merged, fn($s) => $s !== ''));
+    return array_values($merged);
 }
 
 /**
@@ -232,7 +278,7 @@ function knowledge_parse_frontmatter(string $raw): array
  *
  * @param string $directory Path to the directory containing markdown files.
  * @param int|null $overlapChars Optional override for chunk overlap.
- * @return list<array{id:string,slug:string,title:string,tags:string,content:string,priority:int}> Array of parsed chunks.
+ * @return list<array{id:string,slug:string,title:string,tags:string,content:string,priority:int,file:string,heading:?string,line:int}> Array of parsed chunks.
  */
 function knowledge_load_chunks(string $directory, ?int $overlapChars = null): array
 {
@@ -262,14 +308,18 @@ function knowledge_load_chunks(string $directory, ?int $overlapChars = null): ar
         $tags   = is_array($tags) ? implode(', ', $tags) : (string) $tags;
         $priority = (int) ($meta['priority'] ?? 5);
 
-        foreach (knowledge_split_body($parsed['body'], $overlapChars) as $position => $content) {
+        $fileName = basename($path);
+        foreach (knowledge_split_body($parsed['body'], $overlapChars) as $position => $part) {
             $chunks[] = [
                 'id'       => $slug . '#' . $position,
                 'slug'     => $slug,
                 'title'    => $title,
                 'tags'     => $tags,
-                'content'  => $content,
+                'content'  => $part['content'],
                 'priority' => $priority,
+                'file'     => $fileName,
+                'heading'  => $part['heading'],
+                'line'     => $part['line'],
             ];
         }
     }
@@ -280,7 +330,7 @@ function knowledge_load_chunks(string $directory, ?int $overlapChars = null): ar
 /**
  * Build a BM25 lexical index from loaded knowledge chunks.
  *
- * @param list<array{id:string,slug:string,title:string,tags:string,content:string,priority:int}> $chunks
+ * @param list<array{id:string,slug:string,title:string,tags:string,content:string,priority:int,file?:string,heading?:?string,line?:int}> $chunks
  * @return array{docs:list<array{id:string,len:int,freqs:array<string,int>}>,df:array<string,int>,avgdl:float,n:int} The BM25 index.
  */
 function knowledge_build_index(array $chunks): array

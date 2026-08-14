@@ -48,6 +48,8 @@ Implemented in `knowledge_split_body`:
 
 Chunk id example: `base#0`, `base#1`, …
 
+Each chunk also carries origin metadata used in API `sources[]`: `file` (basename), `heading` (nearest Markdown heading, or null), `line` (1-indexed line in the body after frontmatter). Overlap prefixes (`[...]`) do not change the heading/line of the primary segment.
+
 ## Authoring tips
 
 - Prefer short, self-contained sections; the engine retrieves **chunks**, not whole files.
@@ -55,6 +57,9 @@ Chunk id example: `base#0`, `base#1`, …
 - Use `priority` > 5 for canonical facts you want favored; < 5 to de-emphasize.
 - Extend synonym coverage in `lib/synonyms.php` when domain jargon fails BM25 (that file currently carries portfolio-oriented maps — customize for your domain).
 - After editing Markdown, run `php scripts/sync.php` (or rely on [Auto-Sync](auto-sync.md) on the next chat). If vectors look stale despite sync, see that doc’s limitations and reset steps.
+
+When `community_notes_enabled` is true, validated chat notes append to `community_notes.md` (gitignored) and are ingested on the next sync like any other `*.md` file.
+
 
 ## Git policy
 

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-08-14
+
+### Added
+- **Source citations**: `sources[]` now includes `file`, `heading`, and `line`; chat UI shows the reference.
+- **Query embedding cache**: SQLite `query_cache` (7-day TTL, stochastic prune) used by `embeddings_get` before Gemini.
+- **Query expansion** (opt-in `query_expansion_enabled`): up to two LLM query variants fused into cosine ranking via RRF. Default off. HyDE documents are not used.
+- **Int8 vector storage** (`vector_precision: int8`): magic-prefixed BLOBs; magnitudes stay f32. Default remains `f32`. `float16` is not implemented.
+- **Community notes** (opt-in `community_notes_enabled`): validated `<!--NOTE-->` JSON stripped from the reply and appended to `data/knowledge/community_notes.md`. Default off.
+
 ## [0.4.0] — 2026-08-12
 
 ### Added
