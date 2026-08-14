@@ -14,7 +14,7 @@ Base endpoint: **`index.php`** (repo root).
 
 ## Web UI
 
-Browsing to `index.php` via `GET` in a web browser automatically serves the built-in single-page chat interface from `public/index.html` along with its static assets (`public/assets/css/chat.css`, `public/assets/js/chat.js`).
+Browsing to `/` or `index.php` via `GET` serves `public/index.html`. The page loads CSS/JS from `/assets/css/chat.css` and `/assets/js/chat.js` (files on disk under `public/assets/`). A `/public/` URL prefix is stripped so older asset links still resolve.
 
 ## Request body
 
