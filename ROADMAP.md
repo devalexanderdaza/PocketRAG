@@ -16,26 +16,30 @@ telemetry, zero-dependency web UI, zero-composer guard in CI.
 
 Tagged: `v0.1.0`.
 
-## v0.2.0 — Hardening, Tests & CI 📋
+## v0.2.0 — Hardening, Tests & CI ✅
 
-- Harden rate limiter against X-Forwarded-For spoofing (trusted proxies).
-- Test suite to 1:1 lib→test coverage (retrieval, sync, embeddings, db, http, prompt,
-  rate_limit, telemetry, llm, groq, ollama, openai).
-- CI runs on `develop`; PHP matrix 8.1/8.2/8.3.
-- Sync README and docs with current code.
+Shipped: rate limiter hardened against X-Forwarded-For spoofing (trusted proxies);
+1:1 lib→test coverage; CI on `develop` with PHP 8.1/8.2/8.3 matrix; README and docs
+aligned with current code.
 
-## v0.3.0 — Retrieval v2 📋
+Tagged: `v0.2.0`.
 
-- Reciprocal Rank Fusion (replace linear 0.7/0.3 blend); keep linear as config fallback.
-- Structure-aware chunking (respect headings and code fences); configurable chunk sizes.
-- Metadata / multi-tenancy pre-filtering (tags, slug) via SQL.
+## v0.3.0 — Retrieval v2 ✅
 
-## v0.4.0 — Ops & Observability 📋
+Shipped: Reciprocal Rank Fusion (linear 0.7/0.3 kept as config fallback);
+structure-aware chunking (headings and code fences) with configurable chunk sizes;
+metadata / multi-tenancy pre-filtering (tags, slug) via SQL.
 
-- Telemetry read endpoint + periodic pruning of `rag_telemetry`.
-- Secure sync webhook triggered from GitHub Actions.
-- Tech-debt batch: dead `prompt_build` params, consistent mock-response, embeddings 5xx
-  retry, message length validation.
+Tagged: `v0.3.0`.
+
+## v0.4.0 — Ops & Observability ✅
+
+Shipped: telemetry read endpoint + periodic pruning of `rag_telemetry`;
+secure sync webhook triggered from GitHub Actions; tech-debt batch (dead
+`prompt_build` params, consistent mock-response, embeddings 5xx retry,
+message length validation).
+
+Tagged: `v0.4.0`.
 
 ## v0.5.0 — Advanced RAG 📋
 
